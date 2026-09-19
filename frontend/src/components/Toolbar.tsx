@@ -11,6 +11,8 @@ interface Props {
   onNameChange: (name: string) => void;
   isValidating?: boolean;
   validationResult?: ValidationResult | null;
+  isDark?: boolean;
+  onToggleTheme?: () => void;
 }
 
 export function Toolbar({
@@ -24,6 +26,8 @@ export function Toolbar({
   onNameChange,
   isValidating,
   validationResult,
+  isDark = true,
+  onToggleTheme,
 }: Props) {
   const hasErrors = validationResult && !validationResult.valid;
   const hasWarnings = validationResult?.warnings.length;
@@ -59,6 +63,13 @@ export function Toolbar({
           {!hasErrors && hasWarnings && (
             <span className="validate-badge validate-badge--warn">{validationResult!.warnings.length}</span>
           )}
+        </button>
+        <button
+          className="btn btn-theme"
+          onClick={onToggleTheme}
+          title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          {isDark ? '☀' : '☾'}
         </button>
         <button className="btn btn-primary" onClick={onGenerate}>Generate</button>
       </div>

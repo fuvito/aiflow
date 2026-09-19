@@ -28,7 +28,18 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isValidating, setIsValidating] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('aiflow-theme') !== 'light');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
+  const toggleTheme = () => setIsDark(d => {
+    const next = !d;
+    localStorage.setItem('aiflow-theme', next ? 'dark' : 'light');
+    return next;
+  });
 
   // Clear validation results whenever the workflow structure changes
   useEffect(() => {
@@ -145,6 +156,8 @@ export default function App() {
         onNameChange={handleNameChange}
         isValidating={isValidating}
         validationResult={validationResult}
+        isDark={isDark}
+        onToggleTheme={toggleTheme}
       />
 
       <div className="workspace">
@@ -152,6 +165,7 @@ export default function App() {
 
         <div className="canvas-column">
           <WorkflowCanvas
+            key={workflow.id}
             workflow={workflow}
             selectedNodeId={selectedNodeId}
             onWorkflowChange={setWorkflow}
