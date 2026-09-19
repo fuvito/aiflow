@@ -1,79 +1,54 @@
-# AiFlow — Current Iteration
+# AiFlow — MVP1 COMPLETE
 
-## Iteration 1 — Project Foundation + Domain Model — COMPLETE
-
-Tasks 1 & 2. Frontend scaffold, backend scaffold, TypeScript + Pydantic workflow models, 24 tests green.
+All 17 tasks across 10 phases delivered across 6 iterations.
 
 ---
 
-## Iteration 2 — Workflow Editor UI — COMPLETE
+## Iteration 6 — Test Expansion + README — COMPLETE
 
 **Completed:** 2026-09-19
 
-### Task 3 — Basic Canvas ✓
-- [x] React Flow integrated with `ReactFlowProvider`
-- [x] Background, Controls, MiniMap
-- [x] Nodes moveable, edges connectable, node selection
-- [x] Delete key removes selected node
-- [x] `WorkflowAdapter.ts` — bidirectional domain model ↔ React Flow mapping
+### Task 15 — Backend Tests ✓
+- [x] `tests/test_api.py` — 8 httpx end-to-end tests
+  - health, validate (valid/missing-START/dupe-IDs/bad-type), generate (503/200/422)
+- [x] 27 backend tests total — all passing
 
-### Task 4 — Node Palette ✓
-- [x] Left panel: all 10 node types listed with color dots
-- [x] Drag from palette → drops node onto canvas at correct position
-- [x] Data-driven via `nodeDefinitions.ts` (adding node type = 1 file change)
+### Task 16 — Frontend Tests ✓
+- [x] `WorkflowAdapter.test.ts` — 17 pure function tests (toReactFlow, positions, edges, add/remove/rename/config)
+- [x] `ValidationPanel.test.tsx` — 5 tests (valid/errors/warnings/dismiss)
+- [x] `PropertiesPanel.test.tsx` — 7 tests (empty state, name/type/config display, onChange callbacks)
+- [x] Fixed `addNode` ID generation: `Date.now()` → `crypto.randomUUID().slice(0,8)`
+- [x] 40 frontend tests total — all passing
 
-### Task 5 — Node Properties Panel ✓
-- [x] Right panel shows selected node name, type badge, config fields
-- [x] Name editable, updates domain model
-- [x] Type-specific config fields: text, textarea, number, select
-- [x] Empty state when nothing selected
-
-### READMEs ✓
-- [x] Root `README.md` — project intro, setup, run, env vars, JSON format, roadmap
-- [x] `frontend/README.md` — frontend-specific setup and structure
-- [x] `backend/README.md` — backend-specific setup, API reference, env vars
+### Task 17 — README ✓
+- [x] Root README rewritten: Quick Start, Using the App section, Generate walkthrough, Troubleshooting, Roadmap
 
 ---
 
-## Iteration 3 — Workflow Management + Validation UI
+## MVP1 Definition of Done — Status
 
-**Goal:** Full save/load/new cycle and visible validation results panel.
-
-Status: `NOT STARTED`
-
-### Task 6 — New Workflow
-- [ ] "New" button resets canvas to default START → END
-- [ ] Confirm dialog before discarding
-
-### Task 7 — Save / Export JSON
-- [ ] "Save" downloads `<workflow-name>.json`
-- [ ] Exported file is domain model — not raw React Flow state
-- [ ] Human-readable, versioned
-
-### Task 8 — Import / Open JSON
-- [ ] "Open" file picker for `.json` files
-- [ ] Parse → validate schema → load into domain model → render canvas
-- [ ] Clear error messages for invalid files
-
-> Note: Tasks 6, 7, 8 are already wired in `App.tsx` from Iteration 2. Verify they work end-to-end and add edge-case handling.
-
-### Task 9 — Validation UI
-- [ ] "Validate" calls `POST /api/workflows/validate`
-- [ ] Errors shown in a visible panel below the canvas (not just alert)
-- [ ] Warnings shown separately
-- [ ] Panel auto-clears when workflow changes
-- [ ] Frontend-side validation runs first (optional: for offline use)
-
-**Done when:** User can save a workflow, reopen it from file, validate and see errors listed in the UI.
+| Capability | Done |
+|---|---|
+| Start the application locally | ✓ |
+| Create a new workflow | ✓ |
+| See START → END | ✓ |
+| Drag nodes onto canvas | ✓ |
+| Connect nodes | ✓ |
+| Configure nodes | ✓ |
+| Delete nodes | ✓ |
+| Validate the workflow | ✓ |
+| Describe a workflow in natural language | ✓ |
+| Generate a workflow using an LLM | ✓ |
+| Edit the generated workflow | ✓ |
+| Export as JSON | ✓ |
+| Import JSON later | ✓ |
+| Load the example workflow | ✓ |
+| Run automated tests | ✓ |
 
 ---
 
-## Upcoming Iterations
+## Next: MVP2 — Simulator
 
-| Iteration | Tasks | Focus |
-|-----------|-------|-------|
-| 4 | 10, 11, 12 | AI Generation (LLM provider + endpoint + Generate UI) |
-| 5 | 13 | Customer Support example workflow |
-| 6 | 14 | Future interface stubs |
-| 7 | 15, 16 | Tests (backend + frontend) |
-| 8 | 17 | Final docs polish |
+See `WorkflowSimulator` stubs in:
+- `frontend/src/services/WorkflowSimulator.ts`
+- `backend/app/services/simulator.py`

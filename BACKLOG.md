@@ -64,18 +64,18 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` skipped
 
 ## Phase 4 — Workflow Management
 
-### Task 6 — New Workflow `[ ]`
+### Task 6 — New Workflow `[x]`
 
 - Toolbar "New" button clears canvas
 - Default workflow: `START → END` nodes pre-placed
 
-### Task 7 — Save / Export JSON `[ ]`
+### Task 7 — Save / Export JSON `[x]`
 
 - "Save" / "Export" downloads `workflow.json`
 - Exported file is the domain model — not raw React Flow state
 - File is human-readable and includes `version` field
 
-### Task 8 — Import / Open JSON `[ ]`
+### Task 8 — Import / Open JSON `[x]`
 
 - "Open" reads a `.json` file
 - Parse → validate schema → load into domain model → render on canvas
@@ -85,7 +85,7 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` skipped
 
 ## Phase 5 — Validation
 
-### Task 9 — Workflow Validator `[ ]`
+### Task 9 — Workflow Validator `[x]`
 
 **Rules:**
 - Exactly one `START` node
@@ -103,14 +103,14 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` skipped
 
 ## Phase 6 — AI Generation
 
-### Task 10 — LLM Provider `[ ]`
+### Task 10 — LLM Provider `[x]`
 
 - `LLMProvider` abstract interface in backend
 - `OpenAIProvider` concrete implementation (or Gemini — pick one)
 - Credentials from env vars only (`LLM_API_KEY`, `LLM_MODEL`)
 - Structured output / JSON mode used for workflow generation
 
-### Task 11 — Workflow Generation API `[ ]`
+### Task 11 — Workflow Generation API `[x]`
 
 - `POST /api/workflows/generate`
 - Builds structured prompt from description
@@ -119,7 +119,7 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` skipped
 - Returns workflow or meaningful error
 - Backend unit tests (mock LLM call)
 
-### Task 12 — Generate UI `[ ]`
+### Task 12 — Generate UI `[x]`
 
 - "Generate" button in toolbar opens description input (textarea + submit)
 - Calls `POST /api/workflows/generate`
@@ -131,7 +131,7 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` skipped
 
 ## Phase 7 — Example Workflow
 
-### Task 13 — Customer Support Example `[ ]`
+### Task 13 — Customer Support Example `[x]`
 
 - `examples/customer-support.json` — the full support agent workflow
 - "Load Example" option in toolbar
@@ -141,7 +141,7 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` skipped
 
 ## Phase 8 — Future Architecture Stubs
 
-### Task 14 — Future Service Interfaces `[ ]`
+### Task 14 — Future Service Interfaces `[x]`
 
 - `WorkflowSimulator` interface (frontend + backend) — stub only
 - `WorkflowEvaluator` interface — stub only
@@ -152,7 +152,7 @@ Status legend: `[ ]` todo · `[~]` in progress · `[x]` done · `[-]` skipped
 
 ## Phase 9 — Testing
 
-### Task 15 — Backend Tests `[ ]`
+### Task 15 — Backend Tests `[x]`
 
 Pytest coverage for:
 - Valid workflow passes validation
@@ -164,7 +164,7 @@ Pytest coverage for:
 - JSON round-trip serialization
 - Missing required config detection
 
-### Task 16 — Frontend Tests `[ ]`
+### Task 16 — Frontend Tests `[x]`
 
 Vitest / React Testing Library coverage for:
 - Canvas renders without crash
@@ -178,7 +178,7 @@ Vitest / React Testing Library coverage for:
 
 ## Phase 10 — Documentation
 
-### Task 17 — README `[ ]`
+### Task 17 — README `[x]`
 
 Cover:
 - Product purpose

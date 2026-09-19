@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -44,8 +44,14 @@ interface Props {
 }
 
 function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Props) {
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const { nodes: rfNodes, edges: rfEdges } = workflowToReactFlow(workflow);
+
+  // Re-fit the viewport whenever a new workflow is loaded (id changes)
+  useEffect(() => {
+    const t = setTimeout(() => fitView({ padding: 0.15, duration: 300 }), 50);
+    return () => clearTimeout(t);
+  }, [workflow.id, fitView]);
 
   const rfNodesWithSelection = rfNodes.map((n) => ({
     ...n,

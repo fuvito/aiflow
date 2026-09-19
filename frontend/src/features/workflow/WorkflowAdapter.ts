@@ -56,7 +56,7 @@ export function addNode(
   type: NodeType,
   position: { x: number; y: number },
 ): Workflow {
-  const id = `${type.toLowerCase()}-${Date.now()}`;
+  const id = `${type.toLowerCase()}-${crypto.randomUUID().slice(0, 8)}`;
   const newNode: WorkflowNode = {
     id,
     type,

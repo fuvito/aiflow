@@ -1,14 +1,19 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Workflow } from './models/workflow';
 import { Toolbar } from './components/Toolbar';
+import { ErrorToast } from './components/ErrorToast';
 import { NodePalette } from './features/workflow/NodePalette';
 import { WorkflowCanvas } from './features/workflow/WorkflowCanvas';
 import { PropertiesPanel } from './features/workflow/PropertiesPanel';
+import { ValidationPanel } from './features/workflow/ValidationPanel';
+import type { ValidationResult } from './features/workflow/ValidationPanel';
+import { GenerateModal } from './features/workflow/GenerateModal';
 import {
   createDefaultWorkflow,
   serializeWorkflow,
   deserializeWorkflow,
 } from './utils/workflowSerializer';
+import customerSupportExample from '../../examples/customer-support.json';
 import {
   updateNodeName,
   updateNodeConfig,
@@ -19,17 +24,29 @@ export default function App() {
   const [workflow, setWorkflow] = useState<Workflow>(() => createDefaultWorkflow());
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string>('');
+  const [isValidating, setIsValidating] = useState(false);
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Clear validation results whenever the workflow structure changes
+  useEffect(() => {
+    setValidationResult(null);
+  }, [workflow.nodes, workflow.edges]);
 
   const flash = (msg: string) => {
     setStatusMessage(msg);
     setTimeout(() => setStatusMessage(''), 3000);
   };
 
+  const showError = (msg: string) => setErrorMessage(msg);
+
   const handleNew = () => {
     if (confirm('Discard current workflow and start a new one?')) {
       setWorkflow(createDefaultWorkflow());
       setSelectedNodeId(null);
+      setValidationResult(null);
       flash('New workflow created.');
     }
   };
@@ -57,9 +74,10 @@ export default function App() {
         const loaded = deserializeWorkflow(evt.target?.result as string);
         setWorkflow(loaded);
         setSelectedNodeId(null);
+        setValidationResult(null);
         flash(`Loaded: ${loaded.name}`);
       } catch (err) {
-        alert(`Failed to load workflow: ${(err as Error).message}`);
+        showError(`Failed to load file: ${(err as Error).message}`);
       }
     };
     reader.readAsText(file);
@@ -67,26 +85,41 @@ export default function App() {
   };
 
   const handleValidate = async () => {
+    setIsValidating(true);
     try {
       const res = await fetch('http://localhost:8000/api/workflows/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflow }),
       });
-      const data = await res.json() as { valid: boolean; errors: string[]; warnings: string[] };
-      if (data.valid) {
-        flash(`Workflow is valid${data.warnings.length ? ` (${data.warnings.length} warning(s) — see console)` : ''}`);
-        if (data.warnings.length) console.warn('Warnings:', data.warnings);
-      } else {
-        alert(`Validation failed:\n\n${data.errors.join('\n')}`);
-      }
+      const data = await res.json() as ValidationResult;
+      setValidationResult(data);
     } catch {
-      alert('Could not reach backend. Is it running on port 8000?');
+      showError('Could not reach backend. Is it running on port 8000?');
+    } finally {
+      setIsValidating(false);
     }
   };
 
-  const handleGenerate = () => {
-    alert('AI generation coming in Iteration 5.');
+  const handleLoadExample = () => {
+    try {
+      const loaded = deserializeWorkflow(JSON.stringify(customerSupportExample));
+      setWorkflow(loaded);
+      setSelectedNodeId(null);
+      setValidationResult(null);
+      flash(`Loaded: ${loaded.name}`);
+    } catch (err) {
+      showError(`Failed to load example: ${(err as Error).message}`);
+    }
+  };
+
+  const handleGenerate = () => setShowGenerateModal(true);
+
+  const handleGenerated = (generated: Workflow) => {
+    setWorkflow(generated);
+    setSelectedNodeId(null);
+    setValidationResult(null);
+    flash(`Generated: ${generated.name}`);
   };
 
   const handleNameChange = (name: string) => setWorkflow((wf) => ({ ...wf, name }));
@@ -106,19 +139,32 @@ export default function App() {
         onNew={handleNew}
         onSave={handleSave}
         onOpen={handleOpen}
+        onLoadExample={handleLoadExample}
         onValidate={handleValidate}
         onGenerate={handleGenerate}
         onNameChange={handleNameChange}
+        isValidating={isValidating}
+        validationResult={validationResult}
       />
 
       <div className="workspace">
         <NodePalette />
-        <WorkflowCanvas
-          workflow={workflow}
-          selectedNodeId={selectedNodeId}
-          onWorkflowChange={setWorkflow}
-          onSelectNode={setSelectedNodeId}
-        />
+
+        <div className="canvas-column">
+          <WorkflowCanvas
+            workflow={workflow}
+            selectedNodeId={selectedNodeId}
+            onWorkflowChange={setWorkflow}
+            onSelectNode={setSelectedNodeId}
+          />
+          {validationResult && (
+            <ValidationPanel
+              result={validationResult}
+              onDismiss={() => setValidationResult(null)}
+            />
+          )}
+        </div>
+
         <PropertiesPanel
           workflow={workflow}
           selectedNodeId={selectedNodeId}
@@ -128,6 +174,17 @@ export default function App() {
       </div>
 
       {statusMessage && <div className="status-bar">{statusMessage}</div>}
+
+      {errorMessage && (
+        <ErrorToast message={errorMessage} onDismiss={() => setErrorMessage('')} />
+      )}
+
+      {showGenerateModal && (
+        <GenerateModal
+          onClose={() => setShowGenerateModal(false)}
+          onGenerated={handleGenerated}
+        />
+      )}
 
       <input
         ref={fileInputRef}

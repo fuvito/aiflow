@@ -1,0 +1,98 @@
+{
+  "version": "1.0",
+  "id": "customer-support-example",
+  "name": "Customer Support Agent",
+  "description": "Classifies support requests, searches the knowledge base, retrieves customer info, and routes complex cases to a human reviewer.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 350, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "classify-request",
+      "type": "LLM",
+      "name": "Classify Request",
+      "position": { "x": 350, "y": 240 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "Classify the customer support request into one of: billing, technical, account, or general. Also determine complexity: simple (can be resolved automatically) or complex (requires human review). Return JSON: {\"category\": string, \"complexity\": \"simple\" | \"complex\"}",
+        "temperature": 0
+      }
+    },
+    {
+      "id": "knowledge-search",
+      "type": "RAG",
+      "name": "Knowledge Search",
+      "position": { "x": 350, "y": 400 },
+      "config": {
+        "knowledgeBase": "support-documents",
+        "topK": 5,
+        "similarityThreshold": 0.7
+      }
+    },
+    {
+      "id": "customer-api",
+      "type": "API",
+      "name": "Customer API",
+      "position": { "x": 350, "y": 560 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.internal/customers/{customerId}",
+        "headers": { "Authorization": "Bearer env:CUSTOMER_API_TOKEN" }
+      }
+    },
+    {
+      "id": "decision",
+      "type": "CONDITION",
+      "name": "Route Decision",
+      "position": { "x": 350, "y": 720 },
+      "config": {
+        "expression": "classify_result.complexity == \"complex\""
+      }
+    },
+    {
+      "id": "human-review",
+      "type": "HITL",
+      "name": "Human Review",
+      "position": { "x": 620, "y": 880 },
+      "config": {
+        "instructions": "Review the customer request and the AI-retrieved context. Provide a resolution or escalate to a specialist. Respond with a clear action and the final message to send the customer."
+      }
+    },
+    {
+      "id": "response",
+      "type": "LLM",
+      "name": "Generate Response",
+      "position": { "x": 350, "y": 1040 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "Using the customer information, knowledge base results, and resolution (from human review if applicable), write a helpful, professional response to the customer's support request.",
+        "temperature": 0.3
+      }
+    },
+    {
+      "id": "end",
+      "type": "END",
+      "name": "End",
+      "position": { "x": 350, "y": 1200 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",            "target": "classify-request" },
+    { "source": "classify-request", "target": "knowledge-search" },
+    { "source": "knowledge-search", "target": "customer-api" },
+    { "source": "customer-api",     "target": "decision" },
+    { "source": "decision",         "target": "response",     "condition": "simple" },
+    { "source": "decision",         "target": "human-review", "condition": "complex" },
+    { "source": "human-review",     "target": "response" },
+    { "source": "response",         "target": "end" }
+  ],
+  "metadata": {
+    "author": "AiFlow Example",
+    "tags": ["customer-support", "rag", "hitl", "routing"]
+  }
+}

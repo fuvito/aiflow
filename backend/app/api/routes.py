@@ -6,6 +6,8 @@ from app.schemas.requests import (
     ValidateWorkflowResponse,
 )
 from app.services.validator import validate_workflow
+from app.services.workflow_generator import generate_workflow, WorkflowGenerationError
+from app.providers.factory import get_provider
 
 router = APIRouter(prefix="/api")
 
@@ -27,5 +29,14 @@ async def validate(request: ValidateWorkflowRequest):
 
 @router.post("/workflows/generate", response_model=GenerateWorkflowResponse)
 async def generate(request: GenerateWorkflowRequest):
-    # Implemented in Task 11 — LLM provider wired here
-    raise HTTPException(status_code=501, detail="Workflow generation not yet implemented.")
+    try:
+        provider = get_provider()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        workflow = await generate_workflow(request.description, provider)
+    except WorkflowGenerationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
+
+    return GenerateWorkflowResponse(workflow=workflow)
