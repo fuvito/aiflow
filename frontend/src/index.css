@@ -285,6 +285,12 @@ body {
   stroke-width: 2 !important;
 }
 
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:focus .react-flow__edge-path {
+  stroke: var(--brand) !important;
+  stroke-width: 3 !important;
+}
+
 .react-flow__edge-text {
   fill: var(--text-3) !important;
   font-family: inherit;
@@ -1046,6 +1052,25 @@ body {
   font-size: 11px;
   color: #f87171;
   margin-top: 2px;
+}
+
+.sim-scaffold-btn {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--brand);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s;
+}
+.sim-scaffold-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+}
+.sim-scaffold-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 /* ── Simulation sidebar panel (replaces properties panel when sim is active) ── */

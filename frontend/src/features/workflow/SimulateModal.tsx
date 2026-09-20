@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { Workflow } from '../../models/workflow';
 import type { ExecutionTrace, SimulationEvaluation, SimulationSettings } from '../../models/simulation';
 import { HelpIcon } from '../../components/HelpIcon';
+import { scaffoldSampleInput } from '../../utils/scaffoldInput';
 
 interface Props {
   workflow: Workflow;
@@ -11,6 +12,7 @@ interface Props {
     evaluation: SimulationEvaluation | null,
     settings: SimulationSettings,
   ) => void;
+  onSampleInputSave?: (input: Record<string, unknown>) => void;
 }
 
 const DEFAULT_SETTINGS: SimulationSettings = {
@@ -22,9 +24,15 @@ const DEFAULT_SETTINGS: SimulationSettings = {
   evaluate: false,
 };
 
-export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
+export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSave }: Props) {
   const [settings, setSettings] = useState<SimulationSettings>(DEFAULT_SETTINGS);
-  const [inputJson, setInputJson] = useState('{}');
+  const [inputJson, setInputJson] = useState(() => {
+    const saved = workflow.metadata?.sample_input;
+    if (saved && typeof saved === 'object' && Object.keys(saved).length > 0) {
+      return JSON.stringify(saved, null, 2);
+    }
+    return '{}';
+  });
   const [inputError, setInputError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -37,6 +45,12 @@ export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
 
   const set = <K extends keyof SimulationSettings>(key: K, value: SimulationSettings[K]) =>
     setSettings((s) => ({ ...s, [key]: value }));
+
+  const handleScaffold = () => {
+    const scaffolded = scaffoldSampleInput(workflow);
+    setInputJson(scaffolded);
+    setInputError('');
+  };
 
   const validateInput = (raw: string): Record<string, unknown> | null => {
     try {
@@ -79,6 +93,7 @@ export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
         return;
       }
 
+      onSampleInputSave?.(parsed);
       onSimulated(data.trace, data.evaluation ?? null, settings);
       onClose();
     } catch {
@@ -104,13 +119,24 @@ export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
 
         <div className="modal-body">
           {/* Sample input */}
-          <label className="modal-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
-            Sample input (JSON object)
-            <HelpIcon
-              title="Sample Input"
-              body={"A JSON object passed to the START node as the initial data. It flows through the workflow and is transformed by each node.\n\nUse it to test how your workflow handles different scenarios. Example: { userId: '123', message: 'help with billing' }"}
-            />
-          </label>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+            <label className="modal-label" style={{ display: 'flex', alignItems: 'center', gap: '5px', margin: 0 }}>
+              Sample input (JSON object)
+              <HelpIcon
+                title="Sample Input"
+                body={"A JSON object passed to the START node as the initial data. It flows through the workflow and is transformed by each node.\n\nUse it to test how your workflow handles different scenarios. Example: { userId: '123', message: 'help with billing' }"}
+              />
+            </label>
+            <button
+              type="button"
+              className="sim-scaffold-btn"
+              onClick={handleScaffold}
+              disabled={isLoading}
+              title="Auto-detect input fields from node configs"
+            >
+              Suggest fields ✦
+            </button>
+          </div>
           <textarea
             className="modal-textarea"
             value={inputJson}

@@ -232,6 +232,10 @@ export default function App() {
   // ── Simulation handlers ──────────────────────────────────────────────
   const handleSimulate = useCallback(() => setShowSimulateModal(true), []);
 
+  const handleSampleInputSave = useCallback((input: Record<string, unknown>) => {
+    setWorkflow((wf) => ({ ...wf, metadata: { ...(wf.metadata ?? {}), sample_input: input } }));
+  }, [setWorkflow]);
+
   const handleSimulated = useCallback((
     trace: ExecutionTrace,
     evaluation: SimulationEvaluation | null,
@@ -415,6 +419,7 @@ export default function App() {
           workflow={workflow}
           onClose={() => setShowSimulateModal(false)}
           onSimulated={handleSimulated}
+          onSampleInputSave={handleSampleInputSave}
         />
       )}
 
