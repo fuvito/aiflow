@@ -18,6 +18,7 @@ interface Props {
   onRedo?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
+  onReport?: () => void;
 }
 
 export function Toolbar({
@@ -38,6 +39,7 @@ export function Toolbar({
   onRedo,
   canUndo = false,
   canRedo = false,
+  onReport,
 }: Props) {
   const hasErrors = validationResult && !validationResult.valid;
   const hasWarnings = validationResult?.warnings.length;
@@ -84,6 +86,7 @@ export function Toolbar({
           {isDark ? '☀' : '☾'}
         </button>
         <button className="btn btn-ghost" onClick={onEditJson} title="Edit workflow JSON">JSON</button>
+        <button className="btn btn-ghost" onClick={onReport} title="Export report">Report</button>
         <button className="btn btn-primary" onClick={onGenerate}>Generate</button>
       </div>
     </header>

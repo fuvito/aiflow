@@ -178,7 +178,7 @@ Vitest / React Testing Library coverage for:
 
 ## Phase 10 — Workflow Report
 
-### Task 18 — Export Report `[ ]`
+### Task 18 — Export Report `[x]`
 
 Generate a human-readable report of the current workflow.
 
@@ -201,7 +201,7 @@ Generate a human-readable report of the current workflow.
 
 ## Phase 11 — Workflow History (Undo / Redo)
 
-### Task 19 — In-Memory Undo/Redo `[ ]`
+### Task 19 — In-Memory Undo/Redo `[x]`
 
 Let users step backward and forward through workflow changes.
 

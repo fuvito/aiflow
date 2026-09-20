@@ -10,6 +10,7 @@ import { ValidationPanel } from './features/workflow/ValidationPanel';
 import type { ValidationResult } from './features/workflow/ValidationPanel';
 import { GenerateModal } from './features/workflow/GenerateModal';
 import { WorkflowJsonEditor } from './features/workflow/WorkflowJsonEditor';
+import { ReportModal } from './features/workflow/ReportModal';
 import {
   createDefaultWorkflow,
   serializeWorkflow,
@@ -41,6 +42,7 @@ export default function App() {
   const [isValidating, setIsValidating] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showJsonEditor, setShowJsonEditor] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('aiflow-theme') !== 'light');
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Stable ref so save/validate callbacks always see the latest workflow
@@ -150,6 +152,7 @@ export default function App() {
 
   const handleGenerate = useCallback(() => setShowGenerateModal(true), []);
   const handleEditJson = useCallback(() => setShowJsonEditor(true), []);
+  const handleReport = useCallback(() => setShowReportModal(true), []);
 
   const handleJsonApply = useCallback((updated: Workflow) => {
     setWorkflow(updated);
@@ -195,6 +198,7 @@ export default function App() {
         onRedo={redo}
         canUndo={canUndo}
         canRedo={canRedo}
+        onReport={handleReport}
       />
 
       <div className="workspace">
@@ -242,6 +246,13 @@ export default function App() {
           workflow={workflow}
           onApply={handleJsonApply}
           onClose={() => setShowJsonEditor(false)}
+        />
+      )}
+
+      {showReportModal && (
+        <ReportModal
+          workflow={workflow}
+          onClose={() => setShowReportModal(false)}
         />
       )}
 
