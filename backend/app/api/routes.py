@@ -13,7 +13,7 @@ from app.schemas.simulation import (
 )
 from app.services.validator import validate_workflow
 from app.services.workflow_generator import generate_workflow, WorkflowGenerationError
-from app.services.simulator import simulate, resume_simulation, SimulationError
+from app.services.simulator import simulate, resume_simulation, get_paused_settings, SimulationError
 from app.services.evaluator import mock_evaluate, llm_evaluate, EvaluationError
 from app.providers.factory import get_provider
 
@@ -74,8 +74,25 @@ async def simulate_workflow(request: SimulateWorkflowRequest):
 
 @router.post("/workflows/simulate/resume", response_model=SimulateWorkflowResponse)
 async def resume_simulation_endpoint(request: ResumeSimulationRequest):
+    # Read settings/workflow before resume_simulation consumes the paused state.
+    paused_info = get_paused_settings(request.trace_id)
+
     try:
         trace = resume_simulation(request.trace_id, request.node_id, request.decision)
     except SimulationError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
-    return SimulateWorkflowResponse(trace=trace)
+
+    evaluation = None
+    if paused_info and trace.status == "complete":
+        resume_workflow, resume_settings = paused_info
+        if resume_settings.evaluate:
+            if resume_settings.llm_mode == LLMMode.MOCK:
+                evaluation = mock_evaluate(resume_workflow, trace)
+            else:
+                try:
+                    provider = get_provider()
+                    evaluation = await llm_evaluate(resume_workflow, trace, provider)
+                except (RuntimeError, EvaluationError):
+                    evaluation = mock_evaluate(resume_workflow, trace)
+
+    return SimulateWorkflowResponse(trace=trace, evaluation=evaluation)

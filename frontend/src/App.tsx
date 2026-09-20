@@ -235,7 +235,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trace_id: simulationTrace.trace_id, node_id: nodeId, decision }),
       });
-      const data = await res.json() as { trace?: ExecutionTrace; detail?: string };
+      const data = await res.json() as { trace?: ExecutionTrace; evaluation?: SimulationEvaluation; detail?: string };
       if (!res.ok) {
         showError(data.detail ?? `Resume failed (${res.status})`);
         return;
@@ -246,6 +246,7 @@ export default function App() {
         return;
       }
       setSimulationTrace(newTrace);
+      if (data.evaluation) setSimulationEvaluation(data.evaluation);
       setCurrentSimStep(simulationSettings?.display_mode === 'instant' ? newTrace.steps.length : currentSimStep);
     } catch {
       showError('Could not reach backend. Is it running on port 8000?');

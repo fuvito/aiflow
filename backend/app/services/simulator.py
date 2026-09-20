@@ -76,6 +76,14 @@ def simulate(
     return _run_bfs(trace, workflow, settings, node_by_id, edges_from, queue, set())
 
 
+def get_paused_settings(trace_id: str) -> tuple[Workflow, SimulationSettings] | None:
+    """Return (workflow, settings) for a paused trace without consuming it, or None."""
+    paused = _paused_store.get(trace_id)
+    if paused is None:
+        return None
+    return paused.workflow, paused.settings
+
+
 def resume_simulation(trace_id: str, node_id: str, decision: str) -> ExecutionTrace:
     paused = _paused_store.get(trace_id)
     if not paused:
