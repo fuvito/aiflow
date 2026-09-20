@@ -5,9 +5,10 @@ interface Props {
   onNew: () => void;
   onSave: () => void;
   onOpen: () => void;
-  onLoadExample: () => void;
+  onOpenExamplePicker: () => void;
   onValidate: () => void;
   onGenerate: () => void;
+  onSimulate: () => void;
   onEditJson: () => void;
   onNameChange: (name: string) => void;
   isValidating?: boolean;
@@ -26,9 +27,10 @@ export function Toolbar({
   onNew,
   onSave,
   onOpen,
-  onLoadExample,
+  onOpenExamplePicker,
   onValidate,
   onGenerate,
+  onSimulate,
   onEditJson,
   onNameChange,
   isValidating,
@@ -63,7 +65,7 @@ export function Toolbar({
         <button className="btn btn-ghost" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
         <button className="btn btn-ghost" onClick={onNew}>New</button>
         <button className="btn btn-ghost" onClick={onOpen}>Open</button>
-        <button className="btn btn-ghost" onClick={onLoadExample} title="Load customer support example">Example</button>
+        <button className="btn btn-ghost" onClick={onOpenExamplePicker} title="Browse example workflows">Examples</button>
         <button className="btn btn-ghost" onClick={onSave}>Save</button>
         <button
           className={`btn btn-ghost validate-btn${hasErrors ? ' validate-btn--error' : hasWarnings ? ' validate-btn--warn' : ''}`}
@@ -85,6 +87,7 @@ export function Toolbar({
         >
           {isDark ? '☀' : '☾'}
         </button>
+        <button className="btn btn-ghost" onClick={onSimulate} title="Simulate workflow">Simulate</button>
         <button className="btn btn-ghost" onClick={onEditJson} title="Edit workflow JSON">JSON</button>
         <button className="btn btn-ghost" onClick={onReport} title="Export report">Report</button>
         <button className="btn btn-primary" onClick={onGenerate}>Generate</button>

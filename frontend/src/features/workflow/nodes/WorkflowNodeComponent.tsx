@@ -10,9 +10,11 @@ export const WorkflowNodeComponent = memo(function WorkflowNodeComponent({ data,
   const isStart = data.nodeType === NodeType.START;
   const isEnd = data.nodeType === NodeType.END;
   const isCircle = isStart || isEnd;
+  const statusClass = data.executionStatus ? `node-status--${data.executionStatus}` : '';
 
   return (
     <div
+      className={statusClass}
       style={{
         background: def.color,
         color: def.textColor,
@@ -30,6 +32,8 @@ export const WorkflowNodeComponent = memo(function WorkflowNodeComponent({ data,
         cursor: 'grab',
         userSelect: 'none',
         fontFamily: 'monospace',
+        opacity: data.executionStatus === 'pending' ? 0.4 : 1,
+        transition: 'opacity 0.3s, box-shadow 0.3s',
       }}
     >
       {!isStart && (

@@ -1,0 +1,142 @@
+{
+  "version": "1.0",
+  "id": "complex-ai-research-agent",
+  "name": "AI Research Agent",
+  "description": "Defines research questions, retrieves from a knowledge base, runs a web search, merges and synthesises findings, checks confidence, and routes to expert review before formatting the final report.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 400, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "define-questions",
+      "type": "LLM",
+      "name": "Define Research Questions",
+      "position": { "x": 400, "y": 240 },
+      "config": {
+        "model": "gpt-4o",
+        "prompt": "Given the research topic below, generate 3–5 specific, answerable research questions that will guide the investigation. Return JSON: {\"questions\": string[]}. Topic: {{input.topic}}",
+        "temperature": 0.4
+      }
+    },
+    {
+      "id": "retrieve-knowledge",
+      "type": "RAG",
+      "name": "Retrieve Knowledge Base",
+      "position": { "x": 400, "y": 400 },
+      "config": {
+        "knowledgeBase": "research-library",
+        "topK": 8,
+        "similarityThreshold": 0.65
+      }
+    },
+    {
+      "id": "web-search",
+      "type": "TOOL",
+      "name": "Web Search",
+      "position": { "x": 400, "y": 560 },
+      "config": {
+        "tool": "web_search",
+        "query": "{{define_questions.questions}}",
+        "maxResults": 10
+      }
+    },
+    {
+      "id": "merge-sources",
+      "type": "TRANSFORM",
+      "name": "Merge Sources",
+      "position": { "x": 400, "y": 720 },
+      "config": {
+        "mapping": {
+          "knowledge_base_results": "retrieve_knowledge.documents",
+          "web_results":            "web_search.results",
+          "questions":              "define_questions.questions"
+        }
+      }
+    },
+    {
+      "id": "synthesize",
+      "type": "LLM",
+      "name": "Synthesise Findings",
+      "position": { "x": 400, "y": 880 },
+      "config": {
+        "model": "gpt-4o",
+        "prompt": "You are a research analyst. Synthesise the knowledge base excerpts and web search results into coherent answers for each research question. Assess your confidence (0–1) in each answer. Return JSON: {\"answers\": [{\"question\": string, \"answer\": string, \"confidence\": number}], \"overall_confidence\": number}",
+        "temperature": 0.3
+      }
+    },
+    {
+      "id": "confidence-check",
+      "type": "CONDITION",
+      "name": "Confidence Sufficient?",
+      "position": { "x": 400, "y": 1040 },
+      "config": {
+        "expression": "synthesize.overall_confidence >= 0.75"
+      }
+    },
+    {
+      "id": "expert-review",
+      "type": "HITL",
+      "name": "Expert Review",
+      "position": { "x": 580, "y": 1200 },
+      "config": {
+        "instructions": "Review the synthesised research findings. Verify accuracy, flag any unsupported claims, and approve or request revisions before the report is formatted."
+      }
+    },
+    {
+      "id": "format-report",
+      "type": "TRANSFORM",
+      "name": "Format Report",
+      "position": { "x": 580, "y": 1360 },
+      "config": {
+        "template": "# Research Report: {{input.topic}}\n\n## Summary\n{{synthesize.summary}}\n\n## Findings\n{{synthesize.answers}}\n\n## Reviewer Notes\n{{expert_review.notes}}"
+      }
+    },
+    {
+      "id": "end-complete",
+      "type": "END",
+      "name": "Report Complete",
+      "position": { "x": 400, "y": 1520 },
+      "config": {}
+    },
+    {
+      "id": "identify-gaps",
+      "type": "LLM",
+      "name": "Identify Knowledge Gaps",
+      "position": { "x": 200, "y": 1200 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "The research synthesis has low confidence ({{synthesize.overall_confidence}}). Identify the specific knowledge gaps and unanswered questions that prevented a confident answer. Return JSON: {\"gaps\": string[], \"recommended_sources\": string[]}",
+        "temperature": 0.2
+      }
+    },
+    {
+      "id": "end-insufficient",
+      "type": "END",
+      "name": "Insufficient Data",
+      "position": { "x": 200, "y": 1360 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",             "target": "define-questions" },
+    { "source": "define-questions",  "target": "retrieve-knowledge" },
+    { "source": "retrieve-knowledge","target": "web-search" },
+    { "source": "web-search",        "target": "merge-sources" },
+    { "source": "merge-sources",     "target": "synthesize" },
+    { "source": "synthesize",        "target": "confidence-check" },
+    { "source": "confidence-check",  "target": "expert-review",    "condition": "sufficient" },
+    { "source": "confidence-check",  "target": "identify-gaps",    "condition": "insufficient" },
+    { "source": "expert-review",     "target": "format-report" },
+    { "source": "format-report",     "target": "end-complete" },
+    { "source": "identify-gaps",     "target": "end-insufficient" }
+  ],
+  "metadata": {
+    "difficulty": "complex",
+    "industry": "Research & Analytics",
+    "tags": ["research", "rag", "tool", "hitl", "synthesis"]
+  }
+}

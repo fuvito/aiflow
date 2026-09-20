@@ -1,0 +1,82 @@
+{
+  "version": "1.0",
+  "id": "medium-content-moderation",
+  "name": "Content Moderation Pipeline",
+  "description": "Checks user-submitted content against policy guidelines using RAG, judges it with an LLM, and routes flagged content to a human moderator.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 350, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "policy-lookup",
+      "type": "RAG",
+      "name": "Policy Lookup",
+      "position": { "x": 350, "y": 240 },
+      "config": {
+        "knowledgeBase": "content-policy",
+        "topK": 3,
+        "similarityThreshold": 0.75
+      }
+    },
+    {
+      "id": "llm-judge",
+      "type": "LLM",
+      "name": "LLM Content Judge",
+      "position": { "x": 350, "y": 400 },
+      "config": {
+        "model": "gpt-4o",
+        "prompt": "You are a content moderation AI. Given the submitted content and the relevant policy excerpts, determine if the content violates policy. Return JSON: {\"verdict\": \"safe\" | \"flag\", \"reason\": string, \"confidence\": number}",
+        "temperature": 0
+      }
+    },
+    {
+      "id": "route",
+      "type": "CONDITION",
+      "name": "Safe or Flag?",
+      "position": { "x": 350, "y": 560 },
+      "config": {
+        "expression": "llm_judge.verdict == \"safe\""
+      }
+    },
+    {
+      "id": "end-safe",
+      "type": "END",
+      "name": "Content Approved",
+      "position": { "x": 160, "y": 720 },
+      "config": {}
+    },
+    {
+      "id": "human-review",
+      "type": "HITL",
+      "name": "Human Moderator Review",
+      "position": { "x": 540, "y": 720 },
+      "config": {
+        "instructions": "Review the flagged content alongside the AI judge's reasoning and confidence score. Decide: approve (content is acceptable) or reject (content violates policy). Provide a brief rationale."
+      }
+    },
+    {
+      "id": "end-moderated",
+      "type": "END",
+      "name": "Moderation Complete",
+      "position": { "x": 540, "y": 880 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",        "target": "policy-lookup" },
+    { "source": "policy-lookup","target": "llm-judge" },
+    { "source": "llm-judge",    "target": "route" },
+    { "source": "route",        "target": "end-safe",      "condition": "safe" },
+    { "source": "route",        "target": "human-review",  "condition": "flag" },
+    { "source": "human-review", "target": "end-moderated" }
+  ],
+  "metadata": {
+    "difficulty": "medium",
+    "industry": "Social Media / Platform",
+    "tags": ["content-moderation", "rag", "hitl", "routing"]
+  }
+}

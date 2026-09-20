@@ -41,9 +41,10 @@ interface Props {
   selectedNodeId: string | null;
   onWorkflowChange: (wf: Workflow) => void;
   onSelectNode: (nodeId: string | null) => void;
+  nodeStatuses?: Record<string, string>;
 }
 
-const Canvas = memo(function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Props) {
+const Canvas = memo(function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode, nodeStatuses }: Props) {
   const { screenToFlowPosition, addNodes } = useReactFlow();
 
   const { nodes: rfNodes, edges: rfEdges } = useMemo(
@@ -52,8 +53,12 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, onWorkflowChange
   );
 
   const rfNodesWithSelection = useMemo(
-    () => rfNodes.map((n) => ({ ...n, selected: n.id === selectedNodeId })),
-    [rfNodes, selectedNodeId],
+    () => rfNodes.map((n) => ({
+      ...n,
+      selected: n.id === selectedNodeId,
+      data: { ...n.data, executionStatus: nodeStatuses?.[n.id] },
+    })),
+    [rfNodes, selectedNodeId, nodeStatuses],
   );
 
   const onNodesChange: OnNodesChange = useCallback(
@@ -154,3 +159,4 @@ export function WorkflowCanvas(props: Props) {
     </ReactFlowProvider>
   );
 }
+

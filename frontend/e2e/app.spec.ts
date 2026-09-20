@@ -46,8 +46,9 @@ test.describe('Canvas', () => {
   });
 
   test('shows default START and END nodes', async ({ page }) => {
-    await expect(page.getByText('START')).toBeVisible();
-    await expect(page.getByText('END')).toBeVisible();
+    // Scope to the canvas wrapper to avoid matching palette item labels
+    await expect(page.locator('.canvas-wrapper').getByText('START')).toBeVisible();
+    await expect(page.locator('.canvas-wrapper').getByText('END')).toBeVisible();
   });
 });
 
@@ -57,20 +58,42 @@ test.describe('Node palette', () => {
   });
 
   test('palette lists all node types', async ({ page }) => {
-    const nodeTypes = ['Start', 'End', 'LLM', 'Tool', 'API', 'Database', 'RAG', 'Condition', 'HITL', 'Transform'];
+    const nodeTypes = ['Start', 'End', 'LLM', 'Tool', 'API', 'Database', 'RAG', 'Condition', 'Human Review', 'Transform'];
     for (const label of nodeTypes) {
       await expect(page.locator('.palette-item', { hasText: label })).toBeVisible();
     }
   });
 });
 
-test.describe('Load example', () => {
-  test('loads customer support example and shows multiple nodes', async ({ page }) => {
+test.describe('Example picker', () => {
+  test('Examples button opens the picker modal', async ({ page }) => {
     await page.goto('/');
-    await page.getByRole('button', { name: 'Example' }).click();
-    // Customer support example has more than 2 nodes
-    const nodes = page.locator('.react-flow__node');
-    await expect(nodes).toHaveCount(8);
+    await page.getByRole('button', { name: 'Examples' }).click();
+    await expect(page.getByText('Example Workflows')).toBeVisible();
+  });
+
+  test('picker shows difficulty sections', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Examples' }).click();
+    await expect(page.locator('.example-difficulty-badge', { hasText: 'Easy' })).toBeVisible();
+    await expect(page.locator('.example-difficulty-badge', { hasText: 'Medium' })).toBeVisible();
+    await expect(page.locator('.example-difficulty-badge', { hasText: 'Complex' })).toBeVisible();
+  });
+
+  test('loads workflow and closes modal when a card is selected', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Examples' }).click();
+    await page.locator('.example-card', { hasText: 'Customer Support Agent' }).click();
+    await expect(page.getByText('Example Workflows')).not.toBeVisible();
+    await expect(page.locator('.react-flow__node')).toHaveCount(8);
+  });
+
+  test('search filters cards by name', async ({ page }) => {
+    await page.goto('/');
+    await page.getByRole('button', { name: 'Examples' }).click();
+    await page.locator('.example-picker-search').fill('invoice');
+    await expect(page.locator('.example-card', { hasText: 'Invoice Processing' })).toBeVisible();
+    await expect(page.locator('.example-card', { hasText: 'Customer Support Agent' })).not.toBeVisible();
   });
 });
 
@@ -111,7 +134,7 @@ test.describe('New workflow', () => {
     await page.goto('/');
     page.on('dialog', d => d.accept());
     await page.getByRole('button', { name: 'New' }).click();
-    await expect(page.locator('.toolbar-workflow-name')).toHaveValue('New Workflow');
+    await expect(page.locator('.toolbar-workflow-name')).toHaveValue('Untitled Workflow');
   });
 });
 

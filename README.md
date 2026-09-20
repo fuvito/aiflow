@@ -2,7 +2,7 @@
 
 A developer tool for visually designing, generating, and exporting AI/agentic workflows.
 
-Describe a workflow in natural language → an LLM generates the structured graph → you edit, validate, and export it as JSON.
+Describe a workflow in natural language → an LLM generates the structured graph → you edit, validate, simulate, and export it as JSON.
 
 ---
 
@@ -14,8 +14,9 @@ AiFlow is a visual node-based editor for designing AI agent workflows. Developer
 - **Design** workflows visually — drag nodes onto a canvas and connect them
 - **Configure** each node (LLM prompts, API endpoints, RAG settings, conditions, etc.)
 - **Validate** the workflow for structural correctness
+- **Simulate** — run a mock execution and inspect each step's input/output in a trace panel
 - **Save/Export** as clean, versioned JSON — or **Import** previously saved workflows
-- **Load the example** customer support agent to explore a complete real-world workflow
+- **Browse examples** — 10 categorised workflows across Easy / Medium / Complex difficulties
 
 ### Node Types
 
@@ -43,7 +44,8 @@ Workflow Model (TypeScript + Pydantic)
       │
       ├── React Flow Adapter  →  Visual Canvas
       ├── JSON serializer     →  workflow.json
-      └── Future: LangGraph Adapter, Simulator, Evaluator
+      ├── Simulator           →  BFS mock execution, HITL pause/resume, evaluation
+      └── Future: LangGraph Adapter
 ```
 
 ```
@@ -121,14 +123,18 @@ Open **http://localhost:5173**.
 ## Running Tests
 
 ```bash
-# Backend (27 tests)
+# Backend (76 tests)
 cd backend
 .venv/Scripts/pytest -v       # Windows
 pytest -v                     # macOS / Linux
 
-# Frontend (40 tests)
+# Frontend unit tests (98 tests)
 cd frontend
 npm test
+
+# Frontend E2E tests (34 tests — requires dev server)
+cd frontend
+npx playwright test
 ```
 
 ---
@@ -138,8 +144,16 @@ npm test
 ### New Workflow
 Click **New** → canvas resets to `START → END`.
 
-### Load Example
-Click **Example** to load a fully configured customer support agent workflow — a great starting point.
+### Browse Examples
+Click **Examples** → an example picker opens with 10 pre-built, simulation-ready workflows:
+
+| Difficulty | Nodes | Workflows |
+|------------|-------|-----------|
+| Easy | 2–5 | Email auto-reply, Sentiment classifier, Data enrichment |
+| Medium | 6–10 | Customer support, Content moderation, Invoice processing, HR onboarding |
+| Complex | 11+ | AI research agent, Supply chain monitor, Multi-tier customer journey |
+
+Search by name, industry, or tag. Click any card to load the workflow onto the canvas.
 
 ### Add Nodes
 Drag a node type from the left panel onto the canvas.
@@ -152,6 +166,55 @@ Click a node → edit its name and config in the right panel. Press **Delete** t
 
 ### Validate
 Click **Validate** → errors and warnings appear in a panel below the canvas. The button badge shows the count.
+
+### Simulate
+
+Click **Simulate** → configure settings → click **Run Simulation**. The backend executes a mock traversal of your workflow graph (BFS from `START` to `END`) and streams each step into a trace panel at the bottom of the screen.
+
+#### Simulation Settings
+
+| Setting | Options | Default | Notes |
+|---------|---------|---------|-------|
+| HITL nodes | Auto-approve / Pause and wait | Auto-approve | Pause suspends execution; Approve or Reject to resume |
+| CONDITION branching | Expression eval / Random / User picks | Expression eval | Expression tries to evaluate the node's expression string |
+| Execution display | Animated / Instant / Manual | Animated | Manual adds a **Next Step** button to step through one node at a time |
+| Step delay | 200–2000 ms | 600 ms | Visible in Animated mode only |
+| Evaluate results | On / Off | Off | Calls LLM after a complete run to generate a quality report |
+
+#### Mock Handlers
+
+Every node type returns a deterministic mock output so you can explore workflows without real API keys:
+
+| Node | Mock output |
+|------|-------------|
+| `START` | Passes input data through unchanged |
+| `END` | Wraps preceding output as `{ result: ... }` |
+| `LLM` | `{ response: "Mock LLM response for <node>", tokens_used: 42 }` |
+| `TOOL` | `{ output: "Mock tool result for <node>", success: true }` |
+| `API` | `{ status: 200, data: { message: "Mock API response" } }` |
+| `DATABASE` | `{ rows: [{ id: 1, data: "Mock row" }], count: 1 }` |
+| `RAG` | `{ documents: [{ content: "Mock document", score: 0.95 }] }` |
+| `CONDITION` | Evaluates the node's `expression` field; falls back to passing all edges |
+| `HITL` | `{ approved: true, reviewer: "auto" }` (auto-approve) or suspends (pause mode) |
+| `TRANSFORM` | Returns input data unchanged |
+
+#### Trace Panel
+
+After a run the trace panel shows each step with status (●success / ●error / ●waiting), node type, name, and duration. Click any row to expand it and inspect the exact input and output JSON.
+
+#### HITL Pause / Resume
+
+When **HITL mode → Pause and wait** is selected, execution halts at the first HITL node. The trace panel shows an `Approve` and a `Reject` button. Clicking either resumes the BFS from that point with the chosen decision recorded in the node's output.
+
+#### LLM Evaluation
+
+Enable **Evaluate results** before running. After a successful (non-paused) simulation, an `LLM Evaluation` panel appears alongside the trace showing a quality score (1–10), summary, strengths, issues, and recommendations.
+
+In mock mode (`llm_mode: mock`) the evaluation is generated deterministically from the workflow's structure. In real mode it calls your configured LLM provider.
+
+#### Future: Real LLM Execution
+
+The simulation engine supports a `llm_mode: real` path (not yet exposed in the UI). Setting this will route LLM, API, RAG, and TOOL nodes through actual providers instead of mock handlers. Requires valid credentials in `backend/.env`.
 
 ### Generate with AI
 Click **Generate** → describe your workflow in natural language → click Generate (or Ctrl+Enter).
@@ -240,22 +303,22 @@ Stop-Process -Id (Get-NetTCPConnection -LocalPort 8000).OwningProcess -Force
 
 ---
 
-## MVP1 Limitations
+## Current Limitations
 
-- No real workflow execution (visual design only)
-- No real API / DB / RAG / HITL calls
+- **Simulator uses mock handlers only** — no real LLM, API, DB, or RAG calls during simulation
+- **HITL resume is in-memory** — a server restart clears any paused simulations
 - File-based persistence only (no database)
-- Single LLM provider (OpenAI)
+- Single LLM provider (OpenAI / LangChain wrapper)
 - No authentication or multi-user support
 
 ---
 
 ## Roadmap
 
-| Milestone | Focus |
-|-----------|-------|
-| **MVP1** | Visual designer + AI generation _(current)_ |
-| **MVP2** | Workflow simulator with mock execution |
-| **MVP3** | Evaluator — test cases, LLM-as-judge, scoring |
-| **MVP4** | Optimizer — cost, latency, token analysis |
-| **Future** | LangGraph export, team collaboration, cloud deployment |
+| Milestone | Focus | Status |
+|-----------|-------|--------|
+| **MVP1** | Visual designer + AI generation | ✓ Done |
+| **MVP2** | Workflow simulator — mock BFS, HITL pause/resume, LLM evaluation | ✓ Done |
+| **MVP3** | Real execution — live LLM, API, RAG, and HITL calls | Planned |
+| **MVP4** | Optimizer — cost, latency, token analysis | Planned |
+| **Future** | LangGraph export, team collaboration, cloud deployment | Backlog |

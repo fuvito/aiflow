@@ -1,0 +1,132 @@
+{
+  "version": "1.0",
+  "id": "complex-supply-chain-monitor",
+  "name": "Supply Chain Monitor",
+  "description": "Polls inventory levels, calculates shortfalls, routes critical shortages to an alert + human decision, and routes moderate shortfalls to an LLM reorder recommendation with database logging.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 400, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "poll-inventory",
+      "type": "API",
+      "name": "Poll Inventory Levels",
+      "position": { "x": 400, "y": 240 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.internal/inventory/levels?warehouse={{input.warehouse_id}}",
+        "headers": { "Authorization": "Bearer env:SUPPLY_API_TOKEN" }
+      }
+    },
+    {
+      "id": "calc-shortfalls",
+      "type": "TRANSFORM",
+      "name": "Calculate Shortfalls",
+      "position": { "x": 400, "y": 400 },
+      "config": {
+        "mapping": {
+          "shortfalls":        "poll_inventory.items[stock_level < reorder_point]",
+          "critical_items":    "poll_inventory.items[stock_level < safety_stock]",
+          "shortage_severity": "critical_items.length > 0 ? \"critical\" : shortfalls.length > 0 ? \"moderate\" : \"none\""
+        }
+      }
+    },
+    {
+      "id": "critical-check",
+      "type": "CONDITION",
+      "name": "Critical Shortage?",
+      "position": { "x": 400, "y": 560 },
+      "config": {
+        "expression": "calc_shortfalls.shortage_severity == \"critical\""
+      }
+    },
+    {
+      "id": "send-alert",
+      "type": "TOOL",
+      "name": "Send Critical Alert",
+      "position": { "x": 200, "y": 720 },
+      "config": {
+        "tool": "send_notification",
+        "channel": "supply-chain-alerts",
+        "message": "CRITICAL: {{calc_shortfalls.critical_items.length}} items below safety stock in warehouse {{input.warehouse_id}}"
+      }
+    },
+    {
+      "id": "emergency-decision",
+      "type": "HITL",
+      "name": "Emergency Procurement Decision",
+      "position": { "x": 200, "y": 880 },
+      "config": {
+        "instructions": "Critical stock shortfall detected. Review the affected items and current supplier options. Authorise emergency purchase orders or provide alternative instructions."
+      }
+    },
+    {
+      "id": "update-orders",
+      "type": "DATABASE",
+      "name": "Create Purchase Orders",
+      "position": { "x": 200, "y": 1040 },
+      "config": {
+        "operation": "insert",
+        "table": "purchase_orders",
+        "fields": ["warehouse_id", "items", "priority", "authorised_by", "created_at"]
+      }
+    },
+    {
+      "id": "end-critical",
+      "type": "END",
+      "name": "Emergency Orders Placed",
+      "position": { "x": 200, "y": 1200 },
+      "config": {}
+    },
+    {
+      "id": "llm-recommend",
+      "type": "LLM",
+      "name": "Recommend Reorder",
+      "position": { "x": 600, "y": 720 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "Analyse the following inventory shortfalls and recommend optimal reorder quantities and timing for each item. Consider lead times and demand patterns. Return JSON: {\"recommendations\": [{\"sku\": string, \"reorder_qty\": number, \"suggested_date\": string, \"rationale\": string}]}. Shortfalls: {{calc_shortfalls.shortfalls}}",
+        "temperature": 0.2
+      }
+    },
+    {
+      "id": "log-recommendation",
+      "type": "DATABASE",
+      "name": "Log Reorder Recommendation",
+      "position": { "x": 600, "y": 880 },
+      "config": {
+        "operation": "insert",
+        "table": "reorder_recommendations",
+        "fields": ["warehouse_id", "recommendations", "generated_at", "status"]
+      }
+    },
+    {
+      "id": "end-normal",
+      "type": "END",
+      "name": "Recommendations Logged",
+      "position": { "x": 600, "y": 1040 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",              "target": "poll-inventory" },
+    { "source": "poll-inventory",     "target": "calc-shortfalls" },
+    { "source": "calc-shortfalls",    "target": "critical-check" },
+    { "source": "critical-check",     "target": "send-alert",       "condition": "critical" },
+    { "source": "critical-check",     "target": "llm-recommend",    "condition": "non-critical" },
+    { "source": "send-alert",         "target": "emergency-decision" },
+    { "source": "emergency-decision", "target": "update-orders" },
+    { "source": "update-orders",      "target": "end-critical" },
+    { "source": "llm-recommend",      "target": "log-recommendation" },
+    { "source": "log-recommendation", "target": "end-normal" }
+  ],
+  "metadata": {
+    "difficulty": "complex",
+    "industry": "Supply Chain / Logistics",
+    "tags": ["supply-chain", "api", "hitl", "database", "tool", "routing"]
+  }
+}

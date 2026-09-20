@@ -1,5 +1,6 @@
-import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
 import type { Workflow } from './models/workflow';
+import type { ExecutionTrace, SimulationEvaluation, SimulationSettings } from './models/simulation';
 import { useWorkflowHistory } from './hooks/useWorkflowHistory';
 import { Toolbar } from './components/Toolbar';
 import { ErrorToast } from './components/ErrorToast';
@@ -9,14 +10,16 @@ import { PropertiesPanel } from './features/workflow/PropertiesPanel';
 import { ValidationPanel } from './features/workflow/ValidationPanel';
 import type { ValidationResult } from './features/workflow/ValidationPanel';
 import { GenerateModal } from './features/workflow/GenerateModal';
+import { SimulateModal } from './features/workflow/SimulateModal';
+import { TracePanel } from './features/workflow/TracePanel';
 import { WorkflowJsonEditor } from './features/workflow/WorkflowJsonEditor';
 import { ReportModal } from './features/workflow/ReportModal';
+import { ExamplePickerModal } from './features/workflow/ExamplePickerModal';
 import {
   createDefaultWorkflow,
   serializeWorkflow,
   deserializeWorkflow,
 } from './utils/workflowSerializer';
-import customerSupportExample from '../../examples/customer-support.json';
 import {
   updateNodeName,
   updateNodeConfig,
@@ -43,6 +46,7 @@ export default function App() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showExamplePicker, setShowExamplePicker] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('aiflow-theme') !== 'light');
   const fileInputRef = useRef<HTMLInputElement>(null);
   // Stable ref so save/validate callbacks always see the latest workflow
@@ -78,11 +82,22 @@ export default function App() {
 
   const showError = useCallback((msg: string) => setErrorMessage(msg), []);
 
+  // ── Simulation state (declared early so handlers below can reference setters) ──
+  const [showSimulateModal, setShowSimulateModal] = useState(false);
+  const [simulationTrace, setSimulationTrace] = useState<ExecutionTrace | null>(null);
+  const [simulationEvaluation, setSimulationEvaluation] = useState<SimulationEvaluation | null>(null);
+  const [simulationSettings, setSimulationSettings] = useState<SimulationSettings | null>(null);
+  const [currentSimStep, setCurrentSimStep] = useState(0);
+
   const handleNew = useCallback(() => {
     if (confirm('Discard current workflow and start a new one?')) {
       reset(createDefaultWorkflow());
       setSelectedNodeId(null);
       setValidationState(null);
+      setSimulationTrace(null);
+      setSimulationEvaluation(null);
+      setSimulationSettings(null);
+      setCurrentSimStep(0);
       flash('New workflow created.');
     }
   }, [flash, reset]);
@@ -112,6 +127,10 @@ export default function App() {
         reset(loaded);
         setSelectedNodeId(null);
         setValidationState(null);
+        setSimulationTrace(null);
+        setSimulationEvaluation(null);
+        setSimulationSettings(null);
+        setCurrentSimStep(0);
         flash(`Loaded: ${loaded.name}`);
       } catch (err) {
         showError(`Failed to load file: ${(err as Error).message}`);
@@ -138,17 +157,18 @@ export default function App() {
     }
   }, [showError]);
 
-  const handleLoadExample = useCallback(() => {
-    try {
-      const loaded = deserializeWorkflow(JSON.stringify(customerSupportExample));
-      reset(loaded);
-      setSelectedNodeId(null);
-      setValidationState(null);
-      flash(`Loaded: ${loaded.name}`);
-    } catch (err) {
-      showError(`Failed to load example: ${(err as Error).message}`);
-    }
-  }, [flash, reset, showError]);
+  const handleOpenExamplePicker = useCallback(() => setShowExamplePicker(true), []);
+
+  const handleExampleSelected = useCallback((loaded: Workflow) => {
+    reset(loaded);
+    setSelectedNodeId(null);
+    setValidationState(null);
+    setSimulationTrace(null);
+    setSimulationEvaluation(null);
+    setSimulationSettings(null);
+    setCurrentSimStep(0);
+    flash(`Loaded: ${loaded.name}`);
+  }, [flash, reset]);
 
   const handleGenerate = useCallback(() => setShowGenerateModal(true), []);
   const handleEditJson = useCallback(() => setShowJsonEditor(true), []);
@@ -178,6 +198,79 @@ export default function App() {
     setWorkflow((wf) => updateNodeConfig(wf, nodeId, key, value));
   }, [setWorkflow]);
 
+  // ── Simulation handlers ──────────────────────────────────────────────
+  const handleSimulate = useCallback(() => setShowSimulateModal(true), []);
+
+  const handleSimulated = useCallback((
+    trace: ExecutionTrace,
+    evaluation: SimulationEvaluation | null,
+    settings: SimulationSettings,
+  ) => {
+    setSimulationTrace(trace);
+    setSimulationEvaluation(evaluation);
+    setSimulationSettings(settings);
+    setCurrentSimStep(settings.display_mode === 'instant' ? trace.steps.length : 0);
+  }, []);
+
+  const handleResume = useCallback(async (nodeId: string, decision: 'approve' | 'reject') => {
+    if (!simulationTrace) return;
+    try {
+      const res = await fetch('http://localhost:8000/api/workflows/simulate/resume', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trace_id: simulationTrace.trace_id, node_id: nodeId, decision }),
+      });
+      const data = await res.json() as ExecutionTrace | { detail?: string };
+      if (!res.ok) {
+        showError(('detail' in data ? data.detail : null) ?? `Resume failed (${res.status})`);
+        return;
+      }
+      const newTrace = data as ExecutionTrace;
+      setSimulationTrace(newTrace);
+      setCurrentSimStep(simulationSettings?.display_mode === 'instant' ? newTrace.steps.length : currentSimStep);
+    } catch {
+      showError('Could not reach backend. Is it running on port 8000?');
+    }
+  }, [simulationTrace, simulationSettings, currentSimStep, showError]);
+
+  const handleClearTrace = useCallback(() => {
+    setSimulationTrace(null);
+    setSimulationEvaluation(null);
+    setSimulationSettings(null);
+    setCurrentSimStep(0);
+  }, []);
+
+  // Animated playback: advance one step at a time
+  useEffect(() => {
+    if (!simulationTrace || !simulationSettings) return;
+    if (simulationSettings.display_mode !== 'animated') return;
+    if (currentSimStep >= simulationTrace.steps.length) return;
+    const timer = setTimeout(
+      () => setCurrentSimStep((s) => s + 1),
+      simulationSettings.animation_delay_ms,
+    );
+    return () => clearTimeout(timer);
+  }, [simulationTrace, simulationSettings, currentSimStep]);
+
+  // Node statuses for canvas highlighting
+  const nodeStatuses = useMemo<Record<string, string>>(() => {
+    if (!simulationTrace || !simulationSettings) return {};
+    const visibleSteps = simulationTrace.steps.slice(0, currentSimStep);
+    const result: Record<string, string> = {};
+    // Mark all nodes as pending when trace is active
+    for (const node of workflow.nodes) {
+      result[node.id] = 'pending';
+    }
+    for (const step of visibleSteps) {
+      result[step.node_id] = step.status;
+    }
+    return result;
+  }, [simulationTrace, simulationSettings, currentSimStep, workflow.nodes]);
+
+  const visibleSimStep = simulationSettings?.display_mode === 'instant'
+    ? (simulationTrace?.steps.length ?? 0)
+    : currentSimStep;
+
   return (
     <div className="app">
       <Toolbar
@@ -185,9 +278,10 @@ export default function App() {
         onNew={handleNew}
         onSave={handleSave}
         onOpen={handleOpen}
-        onLoadExample={handleLoadExample}
+        onOpenExamplePicker={handleOpenExamplePicker}
         onValidate={handleValidate}
         onGenerate={handleGenerate}
+        onSimulate={handleSimulate}
         onEditJson={handleEditJson}
         onNameChange={handleNameChange}
         isValidating={isValidating}
@@ -211,6 +305,7 @@ export default function App() {
             selectedNodeId={selectedNodeId}
             onWorkflowChange={setWorkflow}
             onSelectNode={setSelectedNodeId}
+            nodeStatuses={simulationTrace ? nodeStatuses : undefined}
           />
           {validationResult && (
             <ValidationPanel
@@ -234,6 +329,13 @@ export default function App() {
         <ErrorToast message={errorMessage} onDismiss={() => setErrorMessage('')} />
       )}
 
+      {showExamplePicker && (
+        <ExamplePickerModal
+          onClose={() => setShowExamplePicker(false)}
+          onSelect={handleExampleSelected}
+        />
+      )}
+
       {showGenerateModal && (
         <GenerateModal
           onClose={() => setShowGenerateModal(false)}
@@ -253,6 +355,26 @@ export default function App() {
         <ReportModal
           workflow={workflow}
           onClose={() => setShowReportModal(false)}
+        />
+      )}
+
+      {showSimulateModal && (
+        <SimulateModal
+          workflow={workflow}
+          onClose={() => setShowSimulateModal(false)}
+          onSimulated={handleSimulated}
+        />
+      )}
+
+      {simulationTrace && simulationSettings && (
+        <TracePanel
+          trace={simulationTrace}
+          evaluation={simulationEvaluation}
+          settings={simulationSettings}
+          visibleStepCount={visibleSimStep}
+          onAdvanceStep={() => setCurrentSimStep((s) => Math.min(s + 1, simulationTrace.steps.length))}
+          onResume={handleResume}
+          onClear={handleClearTrace}
         />
       )}
 

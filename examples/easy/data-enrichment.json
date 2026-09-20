@@ -1,0 +1,57 @@
+{
+  "version": "1.0",
+  "id": "easy-data-enrichment",
+  "name": "Data Enrichment Pipeline",
+  "description": "Fetches external company data for a domain, normalises the fields, and outputs an enriched record.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 350, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "fetch-data",
+      "type": "API",
+      "name": "Fetch Enrichment Data",
+      "position": { "x": 350, "y": 240 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.clearbit.com/v2/companies/find?domain={{input.domain}}",
+        "headers": { "Authorization": "Bearer env:CLEARBIT_API_KEY" }
+      }
+    },
+    {
+      "id": "normalise",
+      "type": "TRANSFORM",
+      "name": "Normalise Fields",
+      "position": { "x": 350, "y": 400 },
+      "config": {
+        "mapping": {
+          "company_name":   "name",
+          "industry":       "category.industry",
+          "employee_count": "metrics.employees",
+          "country":        "geo.country"
+        }
+      }
+    },
+    {
+      "id": "end",
+      "type": "END",
+      "name": "End",
+      "position": { "x": 350, "y": 560 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",      "target": "fetch-data" },
+    { "source": "fetch-data", "target": "normalise" },
+    { "source": "normalise",  "target": "end" }
+  ],
+  "metadata": {
+    "difficulty": "easy",
+    "industry": "Sales / CRM",
+    "tags": ["api", "transform", "enrichment"]
+  }
+}

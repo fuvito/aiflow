@@ -75,3 +75,16 @@ class OpenAIProvider(LLMProvider):
         )
         content = response.choices[0].message.content or ""
         return json.loads(content)
+
+    async def complete_json(self, system: str, user: str) -> dict:
+        response = await self._client.chat.completions.create(
+            model=self._model,
+            response_format={"type": "json_object"},
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user},
+            ],
+            temperature=0,
+        )
+        content = response.choices[0].message.content or ""
+        return json.loads(content)

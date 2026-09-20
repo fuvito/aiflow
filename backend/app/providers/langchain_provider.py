@@ -77,3 +77,9 @@ class LangChainProvider(LLMProvider):
         chain = self._llm | self._parser
         result = await chain.ainvoke(messages)
         return result  # type: ignore[return-value]
+
+    async def complete_json(self, system: str, user: str) -> dict:
+        messages = [SystemMessage(content=system), HumanMessage(content=user)]
+        chain = self._llm | self._parser
+        result = await chain.ainvoke(messages)
+        return result  # type: ignore[return-value]

@@ -4,6 +4,7 @@ import { NodeType, type Workflow, type WorkflowNode, type WorkflowEdge } from '.
 export interface RFNodeData extends Record<string, unknown> {
   nodeType: NodeType;
   label: string;
+  executionStatus?: string;
 }
 
 export type WorkflowRFNode = RFNode<RFNodeData, 'workflowNode'>;

@@ -1,0 +1,92 @@
+{
+  "version": "1.0",
+  "id": "medium-hr-onboarding",
+  "name": "HR Employee Onboarding",
+  "description": "Fetches a new employee's profile, generates a personalised 30-60-90 day onboarding plan, gets manager sign-off, provisions system accounts, and logs the completed onboarding.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 350, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "fetch-employee",
+      "type": "API",
+      "name": "Fetch Employee Profile",
+      "position": { "x": 350, "y": 240 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.internal/employees/{{input.employee_id}}",
+        "headers": { "Authorization": "Bearer env:HR_API_TOKEN" }
+      }
+    },
+    {
+      "id": "generate-plan",
+      "type": "LLM",
+      "name": "Generate Onboarding Plan",
+      "position": { "x": 350, "y": 400 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "Create a personalised 30-60-90 day onboarding plan for this new employee. Include key stakeholders to meet, systems to learn, and measurable goals for each phase. Employee profile: {{fetch_employee}}",
+        "temperature": 0.5
+      }
+    },
+    {
+      "id": "manager-approval",
+      "type": "HITL",
+      "name": "Manager Sign-off",
+      "position": { "x": 350, "y": 560 },
+      "config": {
+        "instructions": "Review the AI-generated onboarding plan for your new team member. Approve as-is or provide amendments before account provisioning begins."
+      }
+    },
+    {
+      "id": "provision-accounts",
+      "type": "API",
+      "name": "Provision Accounts",
+      "position": { "x": 350, "y": 720 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.internal/provisioning/accounts",
+        "body": {
+          "employee_id": "{{input.employee_id}}",
+          "role":        "{{fetch_employee.role}}",
+          "department":  "{{fetch_employee.department}}"
+        }
+      }
+    },
+    {
+      "id": "log-onboarding",
+      "type": "DATABASE",
+      "name": "Log Onboarding Record",
+      "position": { "x": 350, "y": 880 },
+      "config": {
+        "operation": "insert",
+        "table": "onboarding_records",
+        "fields": ["employee_id", "start_date", "plan", "manager_approved", "accounts_provisioned"]
+      }
+    },
+    {
+      "id": "end",
+      "type": "END",
+      "name": "End",
+      "position": { "x": 350, "y": 1040 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",             "target": "fetch-employee" },
+    { "source": "fetch-employee",    "target": "generate-plan" },
+    { "source": "generate-plan",     "target": "manager-approval" },
+    { "source": "manager-approval",  "target": "provision-accounts" },
+    { "source": "provision-accounts","target": "log-onboarding" },
+    { "source": "log-onboarding",    "target": "end" }
+  ],
+  "metadata": {
+    "difficulty": "medium",
+    "industry": "Human Resources",
+    "tags": ["hr", "onboarding", "hitl", "database"]
+  }
+}

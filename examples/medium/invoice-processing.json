@@ -1,0 +1,90 @@
+{
+  "version": "1.0",
+  "id": "medium-invoice-processing",
+  "name": "Invoice Processing & Approval",
+  "description": "Fetches an invoice, normalises its fields, checks if the amount requires manager approval, records the result in the ERP database.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 400, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "fetch-invoice",
+      "type": "API",
+      "name": "Fetch Invoice",
+      "position": { "x": 400, "y": 240 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.internal/invoices/{{input.invoice_id}}",
+        "headers": { "Authorization": "Bearer env:INTERNAL_API_TOKEN" }
+      }
+    },
+    {
+      "id": "normalise",
+      "type": "TRANSFORM",
+      "name": "Normalise Invoice",
+      "position": { "x": 400, "y": 400 },
+      "config": {
+        "mapping": {
+          "vendor":      "supplier.name",
+          "amount_usd":  "totals.amount_cents / 100",
+          "due_date":    "payment.due_at",
+          "line_items":  "line_items"
+        }
+      }
+    },
+    {
+      "id": "approval-check",
+      "type": "CONDITION",
+      "name": "Approval Required?",
+      "position": { "x": 400, "y": 560 },
+      "config": {
+        "expression": "normalise.amount_usd > 5000"
+      }
+    },
+    {
+      "id": "manager-approval",
+      "type": "HITL",
+      "name": "Manager Approval",
+      "position": { "x": 620, "y": 720 },
+      "config": {
+        "instructions": "Review this invoice for accuracy and authorise payment. Check vendor name, total amount, and line items against the purchase order. Approve or reject with a brief reason."
+      }
+    },
+    {
+      "id": "record-invoice",
+      "type": "DATABASE",
+      "name": "Record in ERP",
+      "position": { "x": 400, "y": 880 },
+      "config": {
+        "operation": "insert",
+        "table": "invoices",
+        "fields": ["vendor", "amount_usd", "due_date", "status", "approved_by"]
+      }
+    },
+    {
+      "id": "end",
+      "type": "END",
+      "name": "End",
+      "position": { "x": 400, "y": 1040 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",            "target": "fetch-invoice" },
+    { "source": "fetch-invoice",    "target": "normalise" },
+    { "source": "normalise",        "target": "approval-check" },
+    { "source": "approval-check",   "target": "record-invoice",   "condition": "auto-approve" },
+    { "source": "approval-check",   "target": "manager-approval", "condition": "needs-approval" },
+    { "source": "manager-approval", "target": "record-invoice" },
+    { "source": "record-invoice",   "target": "end" }
+  ],
+  "metadata": {
+    "difficulty": "medium",
+    "industry": "Finance / Operations",
+    "tags": ["invoice", "approval", "database", "hitl"]
+  }
+}

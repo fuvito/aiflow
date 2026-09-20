@@ -1,0 +1,60 @@
+{
+  "version": "1.0",
+  "id": "easy-sentiment-classifier",
+  "name": "Sentiment Classifier",
+  "description": "Classifies customer feedback as positive or negative and routes it to the appropriate response path.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 350, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "classify",
+      "type": "LLM",
+      "name": "Classify Sentiment",
+      "position": { "x": 350, "y": 240 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "Classify the sentiment of the following customer feedback as either 'positive' or 'negative'. Return JSON: {\"sentiment\": \"positive\" | \"negative\", \"confidence\": number}. Input: {{input}}",
+        "temperature": 0
+      }
+    },
+    {
+      "id": "route",
+      "type": "CONDITION",
+      "name": "Route by Sentiment",
+      "position": { "x": 350, "y": 400 },
+      "config": {
+        "expression": "classify.sentiment == \"positive\""
+      }
+    },
+    {
+      "id": "end-positive",
+      "type": "END",
+      "name": "Positive Response",
+      "position": { "x": 180, "y": 560 },
+      "config": {}
+    },
+    {
+      "id": "end-negative",
+      "type": "END",
+      "name": "Negative Escalation",
+      "position": { "x": 520, "y": 560 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",    "target": "classify" },
+    { "source": "classify", "target": "route" },
+    { "source": "route",    "target": "end-positive", "condition": "positive" },
+    { "source": "route",    "target": "end-negative",  "condition": "negative" }
+  ],
+  "metadata": {
+    "difficulty": "easy",
+    "industry": "Marketing",
+    "tags": ["sentiment", "classification", "routing"]
+  }
+}

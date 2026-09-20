@@ -1,0 +1,42 @@
+{
+  "version": "1.0",
+  "id": "easy-email-auto-reply",
+  "name": "Email Auto-Reply",
+  "description": "Reads an incoming support email and generates a professional reply using an LLM.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 350, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "draft-reply",
+      "type": "LLM",
+      "name": "Draft Reply",
+      "position": { "x": 350, "y": 240 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "You are a customer support agent. Read the incoming email and write a helpful, professional reply. Be concise and friendly. Input: {{input}}",
+        "temperature": 0.4
+      }
+    },
+    {
+      "id": "end",
+      "type": "END",
+      "name": "End",
+      "position": { "x": 350, "y": 400 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",       "target": "draft-reply" },
+    { "source": "draft-reply", "target": "end" }
+  ],
+  "metadata": {
+    "difficulty": "easy",
+    "industry": "Customer Service",
+    "tags": ["email", "llm", "auto-reply"]
+  }
+}

@@ -1,0 +1,151 @@
+{
+  "version": "1.0",
+  "id": "complex-multi-agent-customer-journey",
+  "name": "Multi-Tier Customer Journey",
+  "description": "Fetches a customer profile, determines their service tier, then branches into distinct premium or basic paths — each with tailored LLM personalisation, optional RAG catalogue lookup, HITL offer approval for premium, and API delivery.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "START",
+      "name": "Start",
+      "position": { "x": 400, "y": 80 },
+      "config": {}
+    },
+    {
+      "id": "fetch-profile",
+      "type": "API",
+      "name": "Fetch Customer Profile",
+      "position": { "x": 400, "y": 240 },
+      "config": {
+        "method": "GET",
+        "url": "https://api.internal/customers/{{input.customer_id}}",
+        "headers": { "Authorization": "Bearer env:CRM_API_TOKEN" }
+      }
+    },
+    {
+      "id": "assess-tier",
+      "type": "LLM",
+      "name": "Assess Customer Tier",
+      "position": { "x": 400, "y": 400 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "Review the customer profile and determine their service tier. Factors: lifetime_value, subscription_plan, tenure_months, support_history. Return JSON: {\"tier\": \"premium\" | \"basic\", \"tier_score\": number, \"rationale\": string}. Profile: {{fetch_profile}}",
+        "temperature": 0
+      }
+    },
+    {
+      "id": "tier-route",
+      "type": "CONDITION",
+      "name": "Premium or Basic?",
+      "position": { "x": 400, "y": 560 },
+      "config": {
+        "expression": "assess_tier.tier == \"premium\""
+      }
+    },
+    {
+      "id": "rag-premium-catalog",
+      "type": "RAG",
+      "name": "Premium Catalogue Lookup",
+      "position": { "x": 200, "y": 720 },
+      "config": {
+        "knowledgeBase": "premium-products-catalog",
+        "topK": 5,
+        "similarityThreshold": 0.7
+      }
+    },
+    {
+      "id": "llm-premium-offer",
+      "type": "LLM",
+      "name": "Craft Premium Offer",
+      "position": { "x": 200, "y": 880 },
+      "config": {
+        "model": "gpt-4o",
+        "prompt": "Create a highly personalised premium offer for this customer based on their profile and relevant catalogue items. Emphasise exclusivity, their specific needs, and tangible benefits. Return JSON: {\"subject\": string, \"body\": string, \"discount_pct\": number, \"recommended_products\": string[]}. Customer: {{fetch_profile}}. Catalogue: {{rag_premium_catalog.documents}}",
+        "temperature": 0.6
+      }
+    },
+    {
+      "id": "hitl-offer-approval",
+      "type": "HITL",
+      "name": "Offer Approval",
+      "position": { "x": 200, "y": 1040 },
+      "config": {
+        "instructions": "Review the AI-crafted premium offer before it is sent. Check that the discount is within policy (max 25%), the recommended products match the customer segment, and the tone is appropriate. Approve or revise."
+      }
+    },
+    {
+      "id": "api-send-premium",
+      "type": "API",
+      "name": "Send Premium Offer",
+      "position": { "x": 200, "y": 1200 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.internal/communications/email",
+        "body": {
+          "to":       "{{fetch_profile.email}}",
+          "subject":  "{{llm_premium_offer.subject}}",
+          "body":     "{{llm_premium_offer.body}}",
+          "priority": "high"
+        }
+      }
+    },
+    {
+      "id": "end-premium",
+      "type": "END",
+      "name": "Premium Journey Complete",
+      "position": { "x": 200, "y": 1360 },
+      "config": {}
+    },
+    {
+      "id": "llm-basic-response",
+      "type": "LLM",
+      "name": "Generate Standard Response",
+      "position": { "x": 600, "y": 720 },
+      "config": {
+        "model": "gpt-4o-mini",
+        "prompt": "Write a friendly, helpful standard response for this customer based on their request. Keep it concise and include relevant next steps or self-service links. Customer profile: {{fetch_profile}}. Request: {{input.request}}",
+        "temperature": 0.4
+      }
+    },
+    {
+      "id": "api-send-basic",
+      "type": "API",
+      "name": "Send Standard Response",
+      "position": { "x": 600, "y": 880 },
+      "config": {
+        "method": "POST",
+        "url": "https://api.internal/communications/email",
+        "body": {
+          "to":      "{{fetch_profile.email}}",
+          "subject": "Re: Your Request",
+          "body":    "{{llm_basic_response.response}}"
+        }
+      }
+    },
+    {
+      "id": "end-basic",
+      "type": "END",
+      "name": "Basic Journey Complete",
+      "position": { "x": 600, "y": 1040 },
+      "config": {}
+    }
+  ],
+  "edges": [
+    { "source": "start",               "target": "fetch-profile" },
+    { "source": "fetch-profile",        "target": "assess-tier" },
+    { "source": "assess-tier",          "target": "tier-route" },
+    { "source": "tier-route",           "target": "rag-premium-catalog", "condition": "premium" },
+    { "source": "tier-route",           "target": "llm-basic-response",  "condition": "basic" },
+    { "source": "rag-premium-catalog",  "target": "llm-premium-offer" },
+    { "source": "llm-premium-offer",    "target": "hitl-offer-approval" },
+    { "source": "hitl-offer-approval",  "target": "api-send-premium" },
+    { "source": "api-send-premium",     "target": "end-premium" },
+    { "source": "llm-basic-response",   "target": "api-send-basic" },
+    { "source": "api-send-basic",       "target": "end-basic" }
+  ],
+  "metadata": {
+    "difficulty": "complex",
+    "industry": "E-commerce / CRM",
+    "tags": ["personalisation", "rag", "hitl", "multi-branch", "api"]
+  }
+}
