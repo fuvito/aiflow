@@ -116,7 +116,7 @@ describe('TracePanel — expand/collapse', () => {
 describe('TracePanel — HITL pause bar', () => {
   it('shows waiting label when trace is paused', () => {
     render(<TracePanel {...defaultProps({ trace: PAUSED_TRACE, visibleStepCount: PAUSED_TRACE.steps.length })} />);
-    expect(screen.getByText(/waiting for review/i)).toBeInTheDocument();
+    expect(screen.getByText(/waiting:/i)).toBeInTheDocument();
   });
 
   it('shows Approve and Reject buttons when paused', () => {
@@ -127,7 +127,7 @@ describe('TracePanel — HITL pause bar', () => {
 
   it('does not show HITL bar when trace is complete', () => {
     render(<TracePanel {...defaultProps()} />);
-    expect(screen.queryByText(/waiting for review/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/waiting:/i)).not.toBeInTheDocument();
     expect(screen.queryByText('Approve')).not.toBeInTheDocument();
   });
 

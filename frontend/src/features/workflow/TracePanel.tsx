@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { ExecutionTrace, NodeExecution, SimulationEvaluation, SimulationSettings } from '../../models/simulation';
 import { EvaluationPanel } from './EvaluationPanel';
 import { HelpIcon } from '../../components/HelpIcon';
@@ -64,6 +64,8 @@ function StepRow({ step }: { step: NodeExecution }) {
 }
 
 export function TracePanel({ trace, evaluation, settings, visibleStepCount, onAdvanceStep, onResume, onClear }: Props) {
+  const [activeTab, setActiveTab] = useState<'trace' | 'evaluation'>('trace');
+
   const visibleSteps = trace.steps.slice(0, visibleStepCount);
   const pausedStep = trace.status === 'paused'
     ? trace.steps.find((s) => s.status === 'waiting')
@@ -71,63 +73,98 @@ export function TracePanel({ trace, evaluation, settings, visibleStepCount, onAd
   const isManual = settings.display_mode === 'manual';
   const canAdvance = isManual && visibleStepCount < trace.steps.length;
 
+  // Switch to evaluation tab once all steps are visible and evaluation has arrived
+  useEffect(() => {
+    if (evaluation && visibleStepCount >= trace.steps.length) {
+      setActiveTab('evaluation');
+    }
+  }, [evaluation, visibleStepCount, trace.steps.length]);
+
   return (
-    <div className="sim-panel">
-      {/* Trace column */}
-      <div className="trace-panel">
-        <div className="trace-header">
-          <span className="trace-title">
-            Simulation
-            {' '}
-            <span className={`trace-status trace-status--${trace.status}`}>{trace.status}</span>
-            <HelpIcon
-              title="Simulation Trace"
-              body="Shows each step of the simulation in execution order. Each row shows the node's status (● success / ● error / ● waiting), type, name, and duration.\n\nClick any row to expand it and inspect the exact input and output JSON for that node."
-            />
+    <div className="sim-side-panel">
+      <div className="sim-side-header">
+        <span className="sim-side-title">
+          Simulation
+          {' '}
+          <span className={`trace-status trace-status--${trace.status}`}>{trace.status}</span>
+          <HelpIcon
+            title="Simulation Trace"
+            body="Shows each step of the simulation in execution order. Each row shows the node's status (● success / ● error / ● waiting), type, name, and duration.\n\nClick any row to expand it and inspect the exact input and output JSON for that node."
+          />
+        </span>
+        <button className="btn btn-ghost sim-side-clear" onClick={onClear}>Clear</button>
+      </div>
+
+      {pausedStep && (
+        <div className="sim-hitl-banner">
+          <span className="sim-hitl-label">
+            ⏸ Waiting: <strong>{pausedStep.node_name}</strong>
           </span>
-          <div className="trace-controls">
-            {isManual && canAdvance && (
-              <button className="btn btn-ghost" onClick={onAdvanceStep} style={{ fontSize: '11px', padding: '3px 8px' }}>
-                Next Step ▶
-              </button>
-            )}
-            <button className="btn btn-ghost" onClick={onClear} style={{ fontSize: '11px', padding: '3px 8px' }}>
-              Clear
+          <div className="sim-hitl-actions">
+            <button
+              className="btn btn-ghost"
+              style={{ color: '#f87171', borderColor: '#7f1d1d' }}
+              onClick={() => onResume(pausedStep.node_id, 'reject')}
+            >
+              Reject
+            </button>
+            <button className="btn btn-primary" onClick={() => onResume(pausedStep.node_id, 'approve')}>
+              Approve
             </button>
           </div>
         </div>
+      )}
 
-        <div className="trace-steps">
-          {visibleSteps.map((step) => (
-            <StepRow key={step.node_id} step={step} />
-          ))}
-          {trace.steps.length === 0 && (
-            <div className="trace-empty">No steps yet.</div>
-          )}
-        </div>
-
-        {/* HITL pause controls */}
-        {pausedStep && (
-          <div className="trace-hitl-bar">
-            <span className="trace-hitl-label">
-              ⏸ Waiting for review: <strong>{pausedStep.node_name}</strong>
-            </span>
-            <div className="trace-hitl-actions">
-              <button className="btn btn-ghost" style={{ color: '#f87171', borderColor: '#7f1d1d' }}
-                onClick={() => onResume(pausedStep.node_id, 'reject')}>
-                Reject
-              </button>
-              <button className="btn btn-primary"
-                onClick={() => onResume(pausedStep.node_id, 'approve')}>
-                Approve
-              </button>
-            </div>
-          </div>
+      <div className="sim-tabs">
+        <button
+          className={`sim-tab${activeTab === 'trace' ? ' sim-tab--active' : ''}`}
+          onClick={() => setActiveTab('trace')}
+        >
+          Trace
+        </button>
+        {settings.evaluate && (
+          <button
+            className={`sim-tab${activeTab === 'evaluation' ? ' sim-tab--active' : ''}`}
+            onClick={() => setActiveTab('evaluation')}
+          >
+            {evaluation ? 'Evaluation ✓' : 'Evaluation …'}
+          </button>
         )}
       </div>
 
-      {/* Evaluation column */}
-      {evaluation && <EvaluationPanel evaluation={evaluation} />}
+      {activeTab === 'trace' && (
+        <div className="sim-tab-content">
+          <div className="trace-steps">
+            {visibleSteps.map((step) => (
+              <StepRow key={step.node_id} step={step} />
+            ))}
+            {trace.steps.length === 0 && (
+              <div className="trace-empty">No steps yet.</div>
+            )}
+          </div>
+          {canAdvance && (
+            <div className="sim-manual-footer">
+              <button className="btn btn-ghost sim-next-btn" onClick={onAdvanceStep}>
+                Next Step ▶
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'evaluation' && (
+        <div className="sim-tab-content">
+          {evaluation ? (
+            <EvaluationPanel evaluation={evaluation} />
+          ) : (
+            <div className="sim-eval-pending">
+              {trace.status === 'complete'
+                ? 'Evaluation did not return results. Check backend logs.'
+                : 'Evaluation will appear here once simulation completes.'}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

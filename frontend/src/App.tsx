@@ -235,12 +235,16 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trace_id: simulationTrace.trace_id, node_id: nodeId, decision }),
       });
-      const data = await res.json() as ExecutionTrace | { detail?: string };
+      const data = await res.json() as { trace?: ExecutionTrace; detail?: string };
       if (!res.ok) {
-        showError(('detail' in data ? data.detail : null) ?? `Resume failed (${res.status})`);
+        showError(data.detail ?? `Resume failed (${res.status})`);
         return;
       }
-      const newTrace = data as ExecutionTrace;
+      const newTrace = data.trace;
+      if (!newTrace) {
+        showError('Resume returned an unexpected response.');
+        return;
+      }
       setSimulationTrace(newTrace);
       setCurrentSimStep(simulationSettings?.display_mode === 'instant' ? newTrace.steps.length : currentSimStep);
     } catch {
@@ -332,14 +336,26 @@ export default function App() {
           )}
         </div>
 
-        <PropertiesPanel
-          workflow={workflow}
-          selectedNodeId={selectedNodeId}
-          selectedEdgeId={selectedEdgeId}
-          onNameChange={handleNodeNameChange}
-          onConfigChange={handleConfigChange}
-          onEdgeChange={handleEdgeChange}
-        />
+        {simulationTrace && simulationSettings ? (
+          <TracePanel
+            trace={simulationTrace}
+            evaluation={simulationEvaluation}
+            settings={simulationSettings}
+            visibleStepCount={visibleSimStep}
+            onAdvanceStep={() => setCurrentSimStep((s) => Math.min(s + 1, simulationTrace.steps.length))}
+            onResume={handleResume}
+            onClear={handleClearTrace}
+          />
+        ) : (
+          <PropertiesPanel
+            workflow={workflow}
+            selectedNodeId={selectedNodeId}
+            selectedEdgeId={selectedEdgeId}
+            onNameChange={handleNodeNameChange}
+            onConfigChange={handleConfigChange}
+            onEdgeChange={handleEdgeChange}
+          />
+        )}
       </div>
 
       {statusMessage && <div className="status-bar">{statusMessage}</div>}
@@ -382,18 +398,6 @@ export default function App() {
           workflow={workflow}
           onClose={() => setShowSimulateModal(false)}
           onSimulated={handleSimulated}
-        />
-      )}
-
-      {simulationTrace && simulationSettings && (
-        <TracePanel
-          trace={simulationTrace}
-          evaluation={simulationEvaluation}
-          settings={simulationSettings}
-          visibleStepCount={visibleSimStep}
-          onAdvanceStep={() => setCurrentSimStep((s) => Math.min(s + 1, simulationTrace.steps.length))}
-          onResume={handleResume}
-          onClear={handleClearTrace}
         />
       )}
 
