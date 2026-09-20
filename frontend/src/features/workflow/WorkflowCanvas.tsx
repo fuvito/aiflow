@@ -1,4 +1,4 @@
-import { useCallback, useMemo, memo } from 'react';
+import { useCallback, useMemo, memo, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -48,7 +48,7 @@ interface Props {
 }
 
 const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, onWorkflowChange, onSelectNode, onSelectEdge, nodeStatuses }: Props) {
-  const { screenToFlowPosition, addNodes } = useReactFlow();
+  const { screenToFlowPosition, addNodes, setCenter, getZoom, getNode } = useReactFlow();
 
   const { nodes: rfNodes, edges: rfEdges } = useMemo(
     () => workflowToReactFlow(workflow),
@@ -68,6 +68,22 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
     () => rfEdges.map((e) => ({ ...e, selected: e.id === selectedEdgeId })),
     [rfEdges, selectedEdgeId],
   );
+
+  // Pan canvas to the currently-running node so it stays in view during simulation.
+  useEffect(() => {
+    if (!nodeStatuses) return;
+    const runningId = Object.entries(nodeStatuses).find(([, s]) => s === 'running')?.[0];
+    if (!runningId) return;
+    const rfNode = getNode(runningId);
+    if (!rfNode) return;
+    const w = rfNode.measured?.width ?? rfNode.width ?? 160;
+    const h = rfNode.measured?.height ?? rfNode.height ?? 60;
+    setCenter(
+      rfNode.position.x + (w as number) / 2,
+      rfNode.position.y + (h as number) / 2,
+      { duration: 400, zoom: getZoom() },
+    );
+  }, [nodeStatuses, getNode, setCenter, getZoom]);
 
   const onEdgeClick: OnEdgeClick = useCallback(
     (_, edge) => {
