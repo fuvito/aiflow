@@ -96,11 +96,11 @@ Full spec: `docs/AiFlow - MVP2.md`
 - [x] State reset — New workflow clears trace panel
 - [x] Fixed 4 pre-existing app.spec.ts failures (START/END ambiguity, HITL label, Complex badge, Untitled Workflow name)
 
-### Task 29 — README Update `[ ]`
+### Task 29 — README Update `[x]`
 
-- [ ] Simulator section in README
-- [ ] Mock handler behavior documented
-- [ ] Future real-LLM path noted
+- [x] Simulator section in README
+- [x] Mock handler behavior documented
+- [x] Future real-LLM path noted
 
 ---
 

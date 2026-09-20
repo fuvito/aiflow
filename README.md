@@ -169,7 +169,7 @@ Click **Validate** → errors and warnings appear in a panel below the canvas. T
 
 ### Simulate
 
-Click **Simulate** → configure settings → click **Run Simulation**. The backend executes a mock traversal of your workflow graph (BFS from `START` to `END`) and streams each step into a trace panel at the bottom of the screen.
+Click **Simulate** → configure settings → click **Run Simulation**. The backend executes a mock BFS traversal of your workflow graph from `START` to `END`. Results appear in the right sidebar panel (which replaces the Properties panel for the duration of the simulation), keeping the canvas fully visible.
 
 #### Simulation Settings
 
@@ -198,19 +198,22 @@ Every node type returns a deterministic mock output so you can explore workflows
 | `HITL` | `{ approved: true, reviewer: "auto" }` (auto-approve) or suspends (pause mode) |
 | `TRANSFORM` | Returns input data unchanged |
 
-#### Trace Panel
+#### Simulation Sidebar
 
-After a run the trace panel shows each step with status (●success / ●error / ●waiting), node type, name, and duration. Click any row to expand it and inspect the exact input and output JSON.
+The sidebar has two tabs:
+
+- **Trace** — each execution step with status (●success / ●error / ●waiting), node type, name, and duration. Click any row to expand it and see the exact input and output JSON. In Manual mode a **Next Step** button advances the trace one node at a time.
+- **Evaluation** — appears when **Evaluate results** is enabled (see below). Shows a quality score and report once the run completes. The sidebar switches to this tab automatically.
 
 #### HITL Pause / Resume
 
-When **HITL mode → Pause and wait** is selected, execution halts at the first HITL node. The trace panel shows an `Approve` and a `Reject` button. Clicking either resumes the BFS from that point with the chosen decision recorded in the node's output.
+When **HITL mode → Pause and wait** is selected, execution halts at the first HITL node. An amber banner appears at the top of the sidebar showing the node name and **Approve** / **Reject** buttons. Clicking either resumes the BFS from that point with the decision recorded in the node's output. If evaluation was requested, the Evaluation tab populates once the resumed trace completes.
 
 #### LLM Evaluation
 
-Enable **Evaluate results** before running. After a successful (non-paused) simulation, an `LLM Evaluation` panel appears alongside the trace showing a quality score (1–10), summary, strengths, issues, and recommendations.
+Enable **Evaluate results** before running. After simulation completes the **Evaluation** tab shows a quality score (1–10), a 2–3 sentence summary, and collapsible **Strengths / Issues / Recommendations** sections. The sidebar switches to this tab automatically.
 
-In mock mode (`llm_mode: mock`) the evaluation is generated deterministically from the workflow's structure. In real mode it calls your configured LLM provider.
+In mock mode (the default) the evaluation is generated deterministically from the workflow's structure — no API key needed. In real mode it calls your configured LLM provider.
 
 #### Future: Real LLM Execution
 
