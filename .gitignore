@@ -21,6 +21,8 @@ pnpm-debug.log*
 # Tests and coverage
 coverage/
 .nyc_output/
+playwright-report/
+test-results/
 
 # Build outputs and framework caches
 dist/

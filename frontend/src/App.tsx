@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from 'react';
 import type { Workflow } from './models/workflow';
 import { useWorkflowHistory } from './hooks/useWorkflowHistory';
 import { Toolbar } from './components/Toolbar';
@@ -26,7 +26,17 @@ export default function App() {
   const { workflow, setWorkflow, reset, undo, redo, canUndo, canRedo } = useWorkflowHistory(createDefaultWorkflow);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
-  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
+  // Store validation alongside the node/edge counts it was run against so we
+  // can derive staleness without a setState-in-effect.
+  const [validationState, setValidationState] = useState<{
+    result: ValidationResult;
+    nodeCount: number;
+    edgeCount: number;
+  } | null>(null);
+  const validationResult = validationState &&
+    validationState.nodeCount === workflow.nodes.length &&
+    validationState.edgeCount === workflow.edges.length
+    ? validationState.result : null;
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isValidating, setIsValidating] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -36,7 +46,7 @@ export default function App() {
   // Stable ref so save/validate callbacks always see the latest workflow
   // without needing workflow in their dependency arrays
   const workflowRef = useRef(workflow);
-  workflowRef.current = workflow;
+  useLayoutEffect(() => { workflowRef.current = workflow; });
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
@@ -59,11 +69,6 @@ export default function App() {
     return next;
   }), []);
 
-  // Clear validation results whenever the workflow structure changes
-  useEffect(() => {
-    setValidationResult(null);
-  }, [workflow.nodes, workflow.edges]);
-
   const flash = useCallback((msg: string) => {
     setStatusMessage(msg);
     setTimeout(() => setStatusMessage(''), 3000);
@@ -75,7 +80,7 @@ export default function App() {
     if (confirm('Discard current workflow and start a new one?')) {
       reset(createDefaultWorkflow());
       setSelectedNodeId(null);
-      setValidationResult(null);
+      setValidationState(null);
       flash('New workflow created.');
     }
   }, [flash, reset]);
@@ -104,7 +109,7 @@ export default function App() {
         const loaded = deserializeWorkflow(evt.target?.result as string);
         reset(loaded);
         setSelectedNodeId(null);
-        setValidationResult(null);
+        setValidationState(null);
         flash(`Loaded: ${loaded.name}`);
       } catch (err) {
         showError(`Failed to load file: ${(err as Error).message}`);
@@ -123,7 +128,7 @@ export default function App() {
         body: JSON.stringify({ workflow: workflowRef.current }),
       });
       const data = await res.json() as ValidationResult;
-      setValidationResult(data);
+      setValidationState({ result: data, nodeCount: workflowRef.current.nodes.length, edgeCount: workflowRef.current.edges.length });
     } catch {
       showError('Could not reach backend. Is it running on port 8000?');
     } finally {
@@ -136,7 +141,7 @@ export default function App() {
       const loaded = deserializeWorkflow(JSON.stringify(customerSupportExample));
       reset(loaded);
       setSelectedNodeId(null);
-      setValidationResult(null);
+      setValidationState(null);
       flash(`Loaded: ${loaded.name}`);
     } catch (err) {
       showError(`Failed to load example: ${(err as Error).message}`);
@@ -149,26 +154,26 @@ export default function App() {
   const handleJsonApply = useCallback((updated: Workflow) => {
     setWorkflow(updated);
     setSelectedNodeId(null);
-    setValidationResult(null);
+    setValidationState(null);
     flash(`Applied JSON: ${updated.name}`);
-  }, [flash]);
+  }, [flash, setWorkflow]);
 
   const handleGenerated = useCallback((generated: Workflow) => {
     setWorkflow(generated);
     setSelectedNodeId(null);
-    setValidationResult(null);
+    setValidationState(null);
     flash(`Generated: ${generated.name}`);
-  }, [flash]);
+  }, [flash, setWorkflow]);
 
-  const handleNameChange = useCallback((name: string) => setWorkflow((wf) => ({ ...wf, name })), []);
+  const handleNameChange = useCallback((name: string) => setWorkflow((wf) => ({ ...wf, name })), [setWorkflow]);
 
   const handleNodeNameChange = useCallback((nodeId: string, name: string) => {
     setWorkflow((wf) => updateNodeName(wf, nodeId, name));
-  }, []);
+  }, [setWorkflow]);
 
   const handleConfigChange = useCallback((nodeId: string, key: string, value: unknown) => {
     setWorkflow((wf) => updateNodeConfig(wf, nodeId, key, value));
-  }, []);
+  }, [setWorkflow]);
 
   return (
     <div className="app">
@@ -206,7 +211,7 @@ export default function App() {
           {validationResult && (
             <ValidationPanel
               result={validationResult}
-              onDismiss={() => setValidationResult(null)}
+              onDismiss={() => setValidationState(null)}
             />
           )}
         </div>
