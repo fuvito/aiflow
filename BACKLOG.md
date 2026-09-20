@@ -199,9 +199,36 @@ Generate a human-readable report of the current workflow.
 
 ---
 
-## Phase 11 — Documentation
+## Phase 11 — Workflow History (Undo / Redo)
 
-### Task 17 — README `[x]`
+### Task 19 — In-Memory Undo/Redo `[ ]`
+
+Let users step backward and forward through workflow changes.
+
+**Why it's low-effort here:** the domain model is already immutable — every `onWorkflowChange` produces a new `Workflow` object. An undo stack is just an array of past snapshots + a cursor index, all managed in `App.tsx`.
+
+**Scope for MVP1:**
+- In-memory only (lost on page refresh — acceptable for now)
+- Keyboard shortcuts: `Ctrl+Z` undo, `Ctrl+Shift+Z` / `Ctrl+Y` redo
+- Toolbar undo/redo buttons (disabled when at stack boundaries)
+- Stack capped at ~50 entries to bound memory use
+- Any `onWorkflowChange` call pushes to the stack and truncates the redo branch
+
+**Out of scope (future):**
+- **Persistent history** — save stack to localStorage or backend so it survives a page refresh; adds serialization complexity and storage strategy decisions, better suited to MVP2
+- **Named snapshots / branching history** — "save checkpoint" with a label; foundation for a visual timeline feature
+
+**Implementation sketch:**
+```
+useWorkflowHistory(initial: Workflow) → { workflow, canUndo, canRedo, push, undo, redo }
+```
+A single custom hook in `hooks/useWorkflowHistory.ts` replaces the plain `useState` for workflow in `App.tsx`; everything else stays the same.
+
+---
+
+## Phase 12 — Documentation
+
+### Task 20 — README `[x]`
 
 Cover:
 - Product purpose
