@@ -175,6 +175,9 @@ body {
 }
 
 .palette-title {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -182,6 +185,8 @@ body {
   color: var(--text-3);
   padding: 6px 14px 10px;
 }
+
+.palette-item .help-icon { margin-left: auto; }
 
 .palette-item {
   display: flex;
@@ -746,6 +751,68 @@ body {
 
 @keyframes spin {
   to { transform: rotate(360deg); }
+}
+
+/* ── Help icon + dialog ───────────────────────────────────────────── */
+.help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 13px;
+  border: none;
+  background: none;
+  color: var(--text-3);
+  cursor: pointer;
+  padding: 0;
+  opacity: 0.6;
+  line-height: 1;
+  flex-shrink: 0;
+  vertical-align: middle;
+  transition: opacity 0.15s, color 0.15s;
+}
+.help-icon:hover { opacity: 1; color: var(--brand); }
+
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.help-dialog {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-md);
+  border-radius: 10px;
+  width: 360px;
+  max-width: calc(100vw - 40px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.help-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.help-dialog-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.help-dialog-body {
+  padding: 14px 16px 18px;
+  font-size: 13px;
+  color: var(--text-2);
+  line-height: 1.65;
+  white-space: pre-line;
 }
 
 /* ── Status bar ───────────────────────────────────────────────────── */

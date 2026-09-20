@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { toPng } from 'html-to-image';
 import type { Workflow } from '../../models/workflow';
 import { serializeWorkflow } from '../../utils/workflowSerializer';
+import { HelpIcon } from '../../components/HelpIcon';
 
 type Format = 'image' | 'image-json';
 
@@ -76,7 +77,13 @@ export function ReportModal({ workflow, onClose }: Props) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <span className="modal-title">Export Report</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="modal-title">Export Report</span>
+            <HelpIcon
+              title="Export Report"
+              body="Export the current workflow canvas.\n\nImage only — a high-resolution PNG snapshot of the canvas.\n\nImage + JSON — the canvas image plus the workflow JSON file, downloaded together. Useful for sharing or archiving workflow designs."
+            />
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 

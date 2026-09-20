@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { ExecutionTrace, NodeExecution, SimulationEvaluation, SimulationSettings } from '../../models/simulation';
 import { EvaluationPanel } from './EvaluationPanel';
+import { HelpIcon } from '../../components/HelpIcon';
 
 interface Props {
   trace: ExecutionTrace;
@@ -79,6 +80,10 @@ export function TracePanel({ trace, evaluation, settings, visibleStepCount, onAd
             Simulation
             {' '}
             <span className={`trace-status trace-status--${trace.status}`}>{trace.status}</span>
+            <HelpIcon
+              title="Simulation Trace"
+              body="Shows each step of the simulation in execution order. Each row shows the node's status (● success / ● error / ● waiting), type, name, and duration.\n\nClick any row to expand it and inspect the exact input and output JSON for that node."
+            />
           </span>
           <div className="trace-controls">
             {isManual && canAdvance && (

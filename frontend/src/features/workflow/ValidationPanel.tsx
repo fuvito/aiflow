@@ -1,3 +1,5 @@
+import { HelpIcon } from '../../components/HelpIcon';
+
 interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -22,6 +24,10 @@ export function ValidationPanel({ result, onDismiss }: Props) {
               {' '}· {warnings.length} warning{warnings.length !== 1 ? 's' : ''}
             </span>
           )}
+          <HelpIcon
+            title="Workflow Validation"
+            body="Checks the workflow structure for problems.\n\nErrors must be fixed before the workflow will simulate or export reliably. Common errors: missing START or END node, disconnected nodes, invalid edge references.\n\nWarnings are advisory — the workflow can still run, but something may behave unexpectedly."
+          />
         </span>
         <button className="validation-dismiss" onClick={onDismiss} title="Dismiss">✕</button>
       </div>

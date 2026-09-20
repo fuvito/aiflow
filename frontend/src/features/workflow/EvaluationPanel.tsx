@@ -1,4 +1,5 @@
 import type { SimulationEvaluation } from '../../models/simulation';
+import { HelpIcon } from '../../components/HelpIcon';
 
 interface Props {
   evaluation: SimulationEvaluation;
@@ -31,7 +32,13 @@ export function EvaluationPanel({ evaluation }: Props) {
   return (
     <div className="eval-panel">
       <div className="eval-header">
-        <span className="eval-title">LLM Evaluation</span>
+        <span className="eval-title">
+          LLM Evaluation
+          <HelpIcon
+            title="LLM Evaluation"
+            body="An LLM-generated quality assessment of your workflow design.\n\nThe score (1–10) reflects overall quality: ≥7 is good (green), 4–6 needs improvement (amber), ≤3 has significant issues (red).\n\nEnable via the 'Evaluate results' toggle in the Simulate modal."
+          />
+        </span>
         <span className="eval-score" style={{ background: color }}>
           {evaluation.score}/10
         </span>

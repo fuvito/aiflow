@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Workflow } from '../../models/workflow';
 import { deserializeWorkflow } from '../../utils/workflowSerializer';
+import { HelpIcon } from '../../components/HelpIcon';
 
 interface Props {
   workflow: Workflow;
@@ -43,7 +44,13 @@ export function WorkflowJsonEditor({ workflow, onApply, onClose }: Props) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal json-editor-modal">
         <div className="modal-header">
-          <span className="modal-title">Edit Workflow JSON</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="modal-title">Edit Workflow JSON</span>
+            <HelpIcon
+              title="Workflow JSON Editor"
+              body="Directly view and edit the raw JSON that represents your workflow. Changes take effect when you click Apply. Use Format to auto-indent.\n\nUseful for fine-grained edits, pasting a workflow from another source, or debugging the internal structure.\n\nWarning: invalid JSON or an unrecognised schema will be rejected with an error."
+            />
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 

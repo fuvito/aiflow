@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Workflow } from '../../models/workflow';
 import type { ExecutionTrace, SimulationEvaluation, SimulationSettings } from '../../models/simulation';
+import { HelpIcon } from '../../components/HelpIcon';
 
 interface Props {
   workflow: Workflow;
@@ -91,13 +92,25 @@ export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal sim-modal">
         <div className="modal-header">
-          <span className="modal-title">Simulate Workflow</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="modal-title">Simulate Workflow</span>
+            <HelpIcon
+              title="Simulate Workflow"
+              body="Runs a mock execution of your workflow. The backend traverses the graph from START to END, calling each node's handler in order.\n\nThe execution trace appears in the panel at the bottom of the screen. Expand any step to inspect its exact input and output JSON."
+            />
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
         <div className="modal-body">
           {/* Sample input */}
-          <label className="modal-label">Sample input (JSON object)</label>
+          <label className="modal-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            Sample input (JSON object)
+            <HelpIcon
+              title="Sample Input"
+              body={"A JSON object passed to the START node as the initial data. It flows through the workflow and is transformed by each node.\n\nUse it to test how your workflow handles different scenarios. Example: { userId: '123', message: 'help with billing' }"}
+            />
+          </label>
           <textarea
             className="modal-textarea"
             value={inputJson}
@@ -111,7 +124,13 @@ export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
           {/* Settings grid */}
           <div className="sim-settings-grid">
             <div className="sim-setting">
-              <label className="prop-label">HITL nodes</label>
+              <label className="prop-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                HITL nodes
+                <HelpIcon
+                  title="HITL Mode"
+                  body="Controls how Human Review nodes behave during simulation.\n\nAuto-approve: execution continues immediately — the node outputs { approved: true }.\n\nPause and wait: execution halts at the HITL node and shows Approve / Reject buttons in the trace panel. Click one to resume."
+                />
+              </label>
               <select
                 className="prop-input prop-select"
                 value={settings.hitl_mode}
@@ -124,7 +143,13 @@ export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
             </div>
 
             <div className="sim-setting">
-              <label className="prop-label">CONDITION branching</label>
+              <label className="prop-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                CONDITION branching
+                <HelpIcon
+                  title="Condition Branching"
+                  body="Controls how branching is decided at Condition nodes.\n\nExpression eval: evaluates the node's expression field against the current data. Falls back to all edges if the expression fails.\n\nRandom: picks one outgoing edge at random on each run.\n\nUser picks: always follows the first outgoing edge."
+                />
+              </label>
               <select
                 className="prop-input prop-select"
                 value={settings.condition_mode}
@@ -138,7 +163,13 @@ export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
             </div>
 
             <div className="sim-setting">
-              <label className="prop-label">Execution display</label>
+              <label className="prop-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                Execution display
+                <HelpIcon
+                  title="Execution Display"
+                  body="Controls how the trace is revealed after simulation.\n\nAnimated: nodes on the canvas highlight one by one as execution progresses, at the configured step delay.\n\nInstant: all results appear simultaneously once the run completes.\n\nManual: a Next Step button advances the trace one step at a time."
+                />
+              </label>
               <select
                 className="prop-input prop-select"
                 value={settings.display_mode}
@@ -180,6 +211,10 @@ export function SimulateModal({ workflow, onClose, onSimulated }: Props) {
               Evaluate results with LLM
               <span className="sim-evaluate-hint"> — generates a quality report after simulation</span>
             </span>
+            <HelpIcon
+              title="LLM Evaluation"
+              body="After simulation completes, sends the execution trace to an LLM which scores your workflow design (1–10) and returns strengths, issues, and improvement recommendations.\n\nRequires a valid LLM_API_KEY in the backend. Adds a few seconds to the total simulation time."
+            />
           </label>
 
           {error && <div className="modal-error">{error}</div>}

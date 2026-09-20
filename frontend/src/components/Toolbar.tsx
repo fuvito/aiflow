@@ -1,4 +1,5 @@
 import type { ValidationResult } from '../features/workflow/ValidationPanel';
+import { HelpIcon } from './HelpIcon';
 
 interface Props {
   workflowName: string;
@@ -51,6 +52,10 @@ export function Toolbar({
       <div className="toolbar-brand">
         <span className="toolbar-logo">⬡</span>
         <span className="toolbar-name">AiFlow</span>
+        <HelpIcon
+          title="AiFlow — Workflow Designer"
+          body="AiFlow is a visual tool for designing AI agent workflows. Name your workflow in the input field, build it on the canvas, then validate, simulate, and export it.\n\nUse Generate to create a workflow from a plain-English description, or Examples to load a pre-built workflow."
+        />
       </div>
 
       <input

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Workflow } from '../../models/workflow';
+import { HelpIcon } from '../../components/HelpIcon';
 
 interface Props {
   onClose: () => void;
@@ -65,7 +66,13 @@ export function GenerateModal({ onClose, onGenerated }: Props) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <span className="modal-title">Generate Workflow</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="modal-title">Generate Workflow</span>
+            <HelpIcon
+              title="Generate with AI"
+              body="Describe what you want your workflow to do in plain English. The AI generates a structured workflow graph from your description — you can then edit it freely on the canvas.\n\nRequires LLM_API_KEY in the backend .env file.\n\nTip: be specific about node types — e.g. 'classify with an LLM, search the knowledge base with RAG, then route complex cases to a human reviewer'."
+            />
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 

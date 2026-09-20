@@ -1,6 +1,7 @@
 import type { Workflow } from '../../models/workflow';
 import { getNodeDefinition } from './nodes/nodeDefinitions';
 import type { ConfigField } from './nodes/nodeDefinitions';
+import { HelpIcon } from '../../components/HelpIcon';
 
 interface Props {
   workflow: Workflow;
@@ -24,7 +25,13 @@ export function PropertiesPanel({ workflow, selectedNodeId, onNameChange, onConf
 
   return (
     <aside className="properties-panel">
-      <div className="properties-title">Properties</div>
+      <div className="properties-title">
+        Properties
+        <HelpIcon
+          title="Properties Panel"
+          body="Shows the configuration for the selected node. Click any node on the canvas to select it.\n\nChange the node's name and configure its behaviour. Each node type exposes different fields — for example, LLM nodes have a prompt and temperature, API nodes have a URL and method."
+        />
+      </div>
 
       <div className="prop-group">
         <label className="prop-label">Name</label>

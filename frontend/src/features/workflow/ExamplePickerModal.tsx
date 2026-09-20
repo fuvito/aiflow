@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import type { Workflow } from '../../models/workflow';
 import { deserializeWorkflow } from '../../utils/workflowSerializer';
+import { HelpIcon } from '../../components/HelpIcon';
 
 // ── Static example catalog ───────────────────────────────────────────
 import emailAutoReply        from '../../../../examples/easy/email-auto-reply.json';
@@ -84,7 +85,13 @@ export function ExamplePickerModal({ onClose, onSelect }: Props) {
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal example-picker-modal">
         <div className="modal-header">
-          <span className="modal-title">Example Workflows</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span className="modal-title">Example Workflows</span>
+            <HelpIcon
+              title="Example Workflows"
+              body="Pre-built workflows ready to explore and simulate. Grouped by difficulty:\n\nEasy — 2–5 nodes, linear flow.\nMedium — 6–10 nodes, branching and HITL.\nComplex — 11+ nodes, multi-branch pipelines.\n\nClick any card to load the workflow onto the canvas. Search by name, industry, or tag."
+            />
+          </div>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
