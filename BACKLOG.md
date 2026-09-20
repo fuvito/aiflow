@@ -417,3 +417,39 @@ Replace the single "Example" toolbar button with a modal that shows examples gro
 - On select: load the workflow (same as current handleLoadExample)
 - Filter/search by name or industry
 - Toolbar button opens picker instead of loading directly
+
+---
+
+## Future Enhancements — Cloud & Multi-user
+
+Not scoped for any current MVP. Would transform AiFlow from a local-first tool into a proper SaaS platform.
+
+### Cloud Workflow Storage
+
+- User accounts: email/password + OAuth (Google / GitHub)
+- Server-side workflow persistence (PostgreSQL or equivalent)
+- Replace "Save → download JSON / Open → upload JSON" with auto-save to user account
+- Workflows accessible from any browser or device
+- The existing localStorage layer (added pre-MVP3) becomes a write-through cache that syncs to the server when online
+
+### Workflow Versioning
+
+- Named snapshots ("v2 — added RAG node")
+- Diff view between versions: added/removed nodes and edges highlighted on canvas
+- Restore to any previous version
+- Fork a workflow to experiment without modifying the original
+
+### Collaboration
+
+- Share a workflow by link (view-only or editable)
+- Multi-user real-time editing (operational transforms or CRDTs)
+- Comments on nodes and edges
+- Team workspaces with role-based access (owner / editor / viewer)
+
+### Architecture notes
+
+When this is tackled the backend will need:
+- Auth middleware (JWT or session-based)
+- New models: `User`, `WorkflowRecord`, `WorkflowVersion`
+- A repository layer replacing the current JSON-file storage
+- Frontend auth context, protected routes, and a sync service that merges local and remote state

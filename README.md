@@ -310,7 +310,7 @@ Stop-Process -Id (Get-NetTCPConnection -LocalPort 8000).OwningProcess -Force
 
 - **Simulator uses mock handlers only** — no real LLM, API, DB, or RAG calls during simulation
 - **HITL resume is in-memory** — a server restart clears any paused simulations
-- File-based persistence only (no database)
+- **Workflow persists in this browser only** — localStorage keeps your work across refreshes, but it is tied to the current browser/device; multi-device or team access requires the cloud features listed in the roadmap
 - Single LLM provider (OpenAI / LangChain wrapper)
 - No authentication or multi-user support
 
@@ -324,4 +324,4 @@ Stop-Process -Id (Get-NetTCPConnection -LocalPort 8000).OwningProcess -Force
 | **MVP2** | Workflow simulator — mock BFS, HITL pause/resume, LLM evaluation | ✓ Done |
 | **MVP3** | Real execution — live LLM, API, RAG, and HITL calls | Planned |
 | **MVP4** | Optimizer — cost, latency, token analysis | Planned |
-| **Future** | LangGraph export, team collaboration, cloud deployment | Backlog |
+| **Future** | LangGraph export, team collaboration, cloud deployment, versioning | Backlog |

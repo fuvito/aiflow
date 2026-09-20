@@ -27,8 +27,18 @@ import {
 } from './features/workflow/WorkflowAdapter';
 import './index.css';
 
+const WORKFLOW_STORAGE_KEY = 'aiflow:workflow';
+
+function loadPersistedWorkflow(): Workflow {
+  try {
+    const raw = localStorage.getItem(WORKFLOW_STORAGE_KEY);
+    if (raw) return deserializeWorkflow(raw);
+  } catch {}
+  return createDefaultWorkflow();
+}
+
 export default function App() {
-  const { workflow, setWorkflow, reset, undo, redo, canUndo, canRedo } = useWorkflowHistory(createDefaultWorkflow);
+  const { workflow, setWorkflow, reset, undo, redo, canUndo, canRedo } = useWorkflowHistory(loadPersistedWorkflow);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
@@ -59,6 +69,12 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(WORKFLOW_STORAGE_KEY, serializeWorkflow(workflow));
+    } catch {}
+  }, [workflow]);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
