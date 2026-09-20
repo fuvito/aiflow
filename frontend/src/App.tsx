@@ -23,12 +23,14 @@ import {
 import {
   updateNodeName,
   updateNodeConfig,
+  updateEdge,
 } from './features/workflow/WorkflowAdapter';
 import './index.css';
 
 export default function App() {
   const { workflow, setWorkflow, reset, undo, redo, canUndo, canRedo } = useWorkflowHistory(createDefaultWorkflow);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   // Store validation alongside the node/edge counts it was run against so we
   // can derive staleness without a setState-in-effect.
@@ -93,6 +95,7 @@ export default function App() {
     if (confirm('Discard current workflow and start a new one?')) {
       reset(createDefaultWorkflow());
       setSelectedNodeId(null);
+      setSelectedEdgeId(null);
       setValidationState(null);
       setSimulationTrace(null);
       setSimulationEvaluation(null);
@@ -126,6 +129,7 @@ export default function App() {
         const loaded = deserializeWorkflow(evt.target?.result as string);
         reset(loaded);
         setSelectedNodeId(null);
+        setSelectedEdgeId(null);
         setValidationState(null);
         setSimulationTrace(null);
         setSimulationEvaluation(null);
@@ -162,6 +166,7 @@ export default function App() {
   const handleExampleSelected = useCallback((loaded: Workflow) => {
     reset(loaded);
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
     setValidationState(null);
     setSimulationTrace(null);
     setSimulationEvaluation(null);
@@ -177,6 +182,7 @@ export default function App() {
   const handleJsonApply = useCallback((updated: Workflow) => {
     setWorkflow(updated);
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
     setValidationState(null);
     flash(`Applied JSON: ${updated.name}`);
   }, [flash, setWorkflow]);
@@ -184,6 +190,7 @@ export default function App() {
   const handleGenerated = useCallback((generated: Workflow) => {
     setWorkflow(generated);
     setSelectedNodeId(null);
+    setSelectedEdgeId(null);
     setValidationState(null);
     flash(`Generated: ${generated.name}`);
   }, [flash, setWorkflow]);
@@ -196,6 +203,14 @@ export default function App() {
 
   const handleConfigChange = useCallback((nodeId: string, key: string, value: unknown) => {
     setWorkflow((wf) => updateNodeConfig(wf, nodeId, key, value));
+  }, [setWorkflow]);
+
+  const handleEdgeChange = useCallback((
+    source: string,
+    target: string,
+    updates: { condition?: string; notes?: string },
+  ) => {
+    setWorkflow((wf) => updateEdge(wf, source, target, updates));
   }, [setWorkflow]);
 
   // ── Simulation handlers ──────────────────────────────────────────────
@@ -303,8 +318,10 @@ export default function App() {
             key={workflow.id}
             workflow={workflow}
             selectedNodeId={selectedNodeId}
+            selectedEdgeId={selectedEdgeId}
             onWorkflowChange={setWorkflow}
             onSelectNode={setSelectedNodeId}
+            onSelectEdge={setSelectedEdgeId}
             nodeStatuses={simulationTrace ? nodeStatuses : undefined}
           />
           {validationResult && (
@@ -318,8 +335,10 @@ export default function App() {
         <PropertiesPanel
           workflow={workflow}
           selectedNodeId={selectedNodeId}
+          selectedEdgeId={selectedEdgeId}
           onNameChange={handleNodeNameChange}
           onConfigChange={handleConfigChange}
+          onEdgeChange={handleEdgeChange}
         />
       </div>
 

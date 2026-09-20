@@ -331,6 +331,15 @@ body {
   line-height: 1.6;
 }
 
+.prop-edge-route {
+  font-size: 12px;
+  color: var(--text-2);
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 5px 8px;
+}
+
 .prop-group {
   margin-bottom: 10px;
 }

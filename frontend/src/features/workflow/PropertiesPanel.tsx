@@ -1,4 +1,4 @@
-import type { Workflow } from '../../models/workflow';
+import type { Workflow, WorkflowEdge } from '../../models/workflow';
 import { getNodeDefinition } from './nodes/nodeDefinitions';
 import type { ConfigField } from './nodes/nodeDefinitions';
 import { HelpIcon } from '../../components/HelpIcon';
@@ -6,17 +6,70 @@ import { HelpIcon } from '../../components/HelpIcon';
 interface Props {
   workflow: Workflow;
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   onNameChange: (nodeId: string, name: string) => void;
   onConfigChange: (nodeId: string, key: string, value: unknown) => void;
+  onEdgeChange: (source: string, target: string, updates: { condition?: string; notes?: string }) => void;
 }
 
-export function PropertiesPanel({ workflow, selectedNodeId, onNameChange, onConfigChange }: Props) {
+export function PropertiesPanel({ workflow, selectedNodeId, selectedEdgeId, onNameChange, onConfigChange, onEdgeChange }: Props) {
   const node = selectedNodeId ? workflow.nodes.find((n) => n.id === selectedNodeId) : null;
+
+  // Resolve selected edge from domain model using the stable RF edge ID format
+  const edge: WorkflowEdge | null = selectedEdgeId
+    ? workflow.edges.find((e) => `${e.source}→${e.target}` === selectedEdgeId) ?? null
+    : null;
+
+  if (!node && edge) {
+    const sourceNode = workflow.nodes.find((n) => n.id === edge.source);
+    const targetNode = workflow.nodes.find((n) => n.id === edge.target);
+    return (
+      <aside className="properties-panel">
+        <div className="properties-title">
+          Edge
+          <HelpIcon
+            title="Edge Properties"
+            body="Condition label: the routing key used by Condition nodes. The simulation engine matches this label against the CONDITION node's expression result to decide which branch to follow.\n\nNotes: a free-text annotation for documentation purposes — not used during simulation."
+          />
+        </div>
+        <div className="prop-group">
+          <label className="prop-label">From → To</label>
+          <div className="prop-edge-route">
+            {sourceNode?.name ?? edge.source} → {targetNode?.name ?? edge.target}
+          </div>
+        </div>
+        <div className="prop-group">
+          <label className="prop-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+            Condition label
+            <HelpIcon
+              title="Condition Label"
+              body={'Set this on edges that leave a Condition node. The simulator matches the node\'s expression result against these labels.\n\nCommon values: true / false, yes / no, complex / simple, approved / rejected.\n\nLeave blank on non-conditional edges.'}
+            />
+          </label>
+          <input
+            className="prop-input"
+            value={edge.condition ?? ''}
+            placeholder="e.g. true, complex, approved"
+            onChange={(e) => onEdgeChange(edge.source, edge.target, { condition: e.target.value || undefined })}
+          />
+        </div>
+        <div className="prop-group">
+          <label className="prop-label">Notes</label>
+          <textarea
+            className="prop-input prop-textarea"
+            value={edge.notes ?? ''}
+            placeholder="Optional annotation…"
+            onChange={(e) => onEdgeChange(edge.source, edge.target, { notes: e.target.value || undefined })}
+          />
+        </div>
+      </aside>
+    );
+  }
 
   if (!node) {
     return (
       <aside className="properties-panel">
-        <div className="properties-empty">Select a node to edit its properties.</div>
+        <div className="properties-empty">Select a node or edge to edit its properties.</div>
       </aside>
     );
   }

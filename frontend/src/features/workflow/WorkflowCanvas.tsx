@@ -14,6 +14,7 @@ import type {
   OnNodesChange,
   OnEdgesChange,
   OnConnect,
+  OnEdgeClick,
   Node as RFNode,
   Edge as RFEdge,
   Connection,
@@ -39,12 +40,14 @@ const nodeTypes = { workflowNode: WorkflowNodeComponent as any };
 interface Props {
   workflow: Workflow;
   selectedNodeId: string | null;
+  selectedEdgeId: string | null;
   onWorkflowChange: (wf: Workflow) => void;
   onSelectNode: (nodeId: string | null) => void;
+  onSelectEdge: (edgeId: string | null) => void;
   nodeStatuses?: Record<string, string>;
 }
 
-const Canvas = memo(function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode, nodeStatuses }: Props) {
+const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, onWorkflowChange, onSelectNode, onSelectEdge, nodeStatuses }: Props) {
   const { screenToFlowPosition, addNodes } = useReactFlow();
 
   const { nodes: rfNodes, edges: rfEdges } = useMemo(
@@ -59,6 +62,19 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, onWorkflowChange
       data: { ...n.data, executionStatus: nodeStatuses?.[n.id] },
     })),
     [rfNodes, selectedNodeId, nodeStatuses],
+  );
+
+  const rfEdgesWithSelection = useMemo(
+    () => rfEdges.map((e) => ({ ...e, selected: e.id === selectedEdgeId })),
+    [rfEdges, selectedEdgeId],
+  );
+
+  const onEdgeClick: OnEdgeClick = useCallback(
+    (_, edge) => {
+      onSelectNode(null);
+      onSelectEdge(edge.id);
+    },
+    [onSelectNode, onSelectEdge],
   );
 
   const onNodesChange: OnNodesChange = useCallback(
@@ -131,15 +147,16 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, onWorkflowChange
     <div className="canvas-wrapper">
       <ReactFlow
         nodes={rfNodesWithSelection}
-        edges={rfEdges}
+        edges={rfEdgesWithSelection}
         nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onDrop={onDrop}
         onDragOver={onDragOver}
-        onNodeClick={(_, node) => onSelectNode(node.id)}
-        onPaneClick={() => onSelectNode(null)}
+        onNodeClick={(_, node) => { onSelectNode(node.id); onSelectEdge(null); }}
+        onEdgeClick={onEdgeClick}
+        onPaneClick={() => { onSelectNode(null); onSelectEdge(null); }}
         deleteKeyCode="Delete"
         fitView
         proOptions={{ hideAttribution: true }}
@@ -159,4 +176,5 @@ export function WorkflowCanvas(props: Props) {
     </ReactFlowProvider>
   );
 }
+
 

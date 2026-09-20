@@ -26,12 +26,13 @@ export function workflowToReactFlow(workflow: Workflow): {
     };
   });
 
-  const edges: RFEdge[] = workflow.edges.map((e, i) => ({
-    id: `edge-${e.source}-${e.target}-${i}`,
+  const edges: RFEdge[] = workflow.edges.map((e) => ({
+    id: `${e.source}→${e.target}`,
     source: e.source,
     target: e.target,
     label: e.condition ?? undefined,
     type: 'smoothstep',
+    data: { notes: e.notes ?? '' },
   }));
 
   return { nodes, edges };
@@ -49,13 +50,32 @@ export function applyNodePositions(workflow: Workflow, rfNodes: RFNode[]): Workf
 }
 
 export function applyEdges(workflow: Workflow, rfEdges: RFEdge[]): Workflow {
-  const edges: WorkflowEdge[] = rfEdges.map((e) => ({
-    source: e.source,
-    target: e.target,
-    condition: typeof e.label === 'string' ? e.label : undefined,
-    metadata: {},
-  }));
+  const existing = new Map(workflow.edges.map((e) => [`${e.source}→${e.target}`, e]));
+  const edges: WorkflowEdge[] = rfEdges.map((e) => {
+    const prev = existing.get(`${e.source}→${e.target}`);
+    return {
+      source: e.source,
+      target: e.target,
+      condition: typeof e.label === 'string' ? e.label : undefined,
+      notes: (e.data as { notes?: string } | undefined)?.notes || prev?.notes,
+      metadata: {},
+    };
+  });
   return { ...workflow, edges };
+}
+
+export function updateEdge(
+  workflow: Workflow,
+  source: string,
+  target: string,
+  updates: { condition?: string; notes?: string },
+): Workflow {
+  return {
+    ...workflow,
+    edges: workflow.edges.map((e) =>
+      e.source === source && e.target === target ? { ...e, ...updates } : e,
+    ),
+  };
 }
 
 export function addNode(

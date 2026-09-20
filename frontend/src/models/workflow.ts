@@ -88,6 +88,7 @@ export interface WorkflowEdge {
   source: string;
   target: string;
   condition?: string;
+  notes?: string;
   metadata?: Record<string, unknown>;
 }
 
