@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import type { Workflow } from './models/workflow';
+import { useWorkflowHistory } from './hooks/useWorkflowHistory';
 import { Toolbar } from './components/Toolbar';
 import { ErrorToast } from './components/ErrorToast';
 import { NodePalette } from './features/workflow/NodePalette';
@@ -22,7 +23,7 @@ import {
 import './index.css';
 
 export default function App() {
-  const [workflow, setWorkflow] = useState<Workflow>(() => createDefaultWorkflow());
+  const { workflow, setWorkflow, reset, undo, redo, canUndo, canRedo } = useWorkflowHistory(createDefaultWorkflow);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null);
@@ -40,6 +41,17 @@ export default function App() {
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+      if (e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
+      if (e.key === 'y' || (e.key === 'z' && e.shiftKey)) { e.preventDefault(); redo(); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [undo, redo]);
 
   const toggleTheme = useCallback(() => setIsDark(d => {
     const next = !d;
@@ -61,12 +73,12 @@ export default function App() {
 
   const handleNew = useCallback(() => {
     if (confirm('Discard current workflow and start a new one?')) {
-      setWorkflow(createDefaultWorkflow());
+      reset(createDefaultWorkflow());
       setSelectedNodeId(null);
       setValidationResult(null);
       flash('New workflow created.');
     }
-  }, [flash]);
+  }, [flash, reset]);
 
   const handleSave = useCallback(() => {
     const wf = workflowRef.current;
@@ -90,7 +102,7 @@ export default function App() {
     reader.onload = (evt) => {
       try {
         const loaded = deserializeWorkflow(evt.target?.result as string);
-        setWorkflow(loaded);
+        reset(loaded);
         setSelectedNodeId(null);
         setValidationResult(null);
         flash(`Loaded: ${loaded.name}`);
@@ -100,7 +112,7 @@ export default function App() {
     };
     reader.readAsText(file);
     e.target.value = '';
-  }, [flash, showError]);
+  }, [flash, reset, showError]);
 
   const handleValidate = useCallback(async () => {
     setIsValidating(true);
@@ -122,14 +134,14 @@ export default function App() {
   const handleLoadExample = useCallback(() => {
     try {
       const loaded = deserializeWorkflow(JSON.stringify(customerSupportExample));
-      setWorkflow(loaded);
+      reset(loaded);
       setSelectedNodeId(null);
       setValidationResult(null);
       flash(`Loaded: ${loaded.name}`);
     } catch (err) {
       showError(`Failed to load example: ${(err as Error).message}`);
     }
-  }, [flash, showError]);
+  }, [flash, reset, showError]);
 
   const handleGenerate = useCallback(() => setShowGenerateModal(true), []);
   const handleEditJson = useCallback(() => setShowJsonEditor(true), []);
@@ -174,6 +186,10 @@ export default function App() {
         validationResult={validationResult}
         isDark={isDark}
         onToggleTheme={toggleTheme}
+        onUndo={undo}
+        onRedo={redo}
+        canUndo={canUndo}
+        canRedo={canRedo}
       />
 
       <div className="workspace">

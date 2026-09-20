@@ -14,6 +14,10 @@ interface Props {
   validationResult?: ValidationResult | null;
   isDark?: boolean;
   onToggleTheme?: () => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export function Toolbar({
@@ -30,6 +34,10 @@ export function Toolbar({
   validationResult,
   isDark = true,
   onToggleTheme,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
 }: Props) {
   const hasErrors = validationResult && !validationResult.valid;
   const hasWarnings = validationResult?.warnings.length;
@@ -49,6 +57,8 @@ export function Toolbar({
       />
 
       <div className="toolbar-actions">
+        <button className="btn btn-ghost" onClick={onUndo} disabled={!canUndo} title="Undo (Ctrl+Z)">↶</button>
+        <button className="btn btn-ghost" onClick={onRedo} disabled={!canRedo} title="Redo (Ctrl+Y)">↷</button>
         <button className="btn btn-ghost" onClick={onNew}>New</button>
         <button className="btn btn-ghost" onClick={onOpen}>Open</button>
         <button className="btn btn-ghost" onClick={onLoadExample} title="Load customer support example">Example</button>
