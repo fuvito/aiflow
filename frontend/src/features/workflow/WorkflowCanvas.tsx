@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo, memo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -43,14 +43,18 @@ interface Props {
   onSelectNode: (nodeId: string | null) => void;
 }
 
-function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Props) {
+const Canvas = memo(function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Props) {
   const { screenToFlowPosition, addNodes } = useReactFlow();
-  const { nodes: rfNodes, edges: rfEdges } = workflowToReactFlow(workflow);
 
-  const rfNodesWithSelection = rfNodes.map((n) => ({
-    ...n,
-    selected: n.id === selectedNodeId,
-  }));
+  const { nodes: rfNodes, edges: rfEdges } = useMemo(
+    () => workflowToReactFlow(workflow),
+    [workflow],
+  );
+
+  const rfNodesWithSelection = useMemo(
+    () => rfNodes.map((n) => ({ ...n, selected: n.id === selectedNodeId })),
+    [rfNodes, selectedNodeId],
+  );
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
@@ -64,9 +68,10 @@ function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Pr
         onWorkflowChange(wf);
         return;
       }
-      // Only sync position changes back to domain model; ignore dimensions/select/add
-      // to avoid stale closure overwriting freshly added nodes
-      const positionChanges = changes.filter((c) => c.type === 'position');
+      // Only sync final position (drag end) back to domain model.
+      // Skipping mid-drag events (dragging: true) prevents ~60 state updates/sec
+      // that cause full App re-renders while dragging.
+      const positionChanges = changes.filter((c) => c.type === 'position' && !c.dragging);
       if (positionChanges.length === 0) return;
       const updated = applyNodeChanges(positionChanges, rfNodes) as WorkflowRFNode[];
       onWorkflowChange(applyNodePositions(workflow, updated as RFNode[]));
@@ -140,7 +145,7 @@ function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Pr
       </ReactFlow>
     </div>
   );
-}
+});
 
 export function WorkflowCanvas(props: Props) {
   return (

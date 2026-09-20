@@ -32,53 +32,58 @@ export default function App() {
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('aiflow-theme') !== 'light');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // Stable ref so save/validate callbacks always see the latest workflow
+  // without needing workflow in their dependency arrays
+  const workflowRef = useRef(workflow);
+  workflowRef.current = workflow;
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
-  const toggleTheme = () => setIsDark(d => {
+  const toggleTheme = useCallback(() => setIsDark(d => {
     const next = !d;
     localStorage.setItem('aiflow-theme', next ? 'dark' : 'light');
     return next;
-  });
+  }), []);
 
   // Clear validation results whenever the workflow structure changes
   useEffect(() => {
     setValidationResult(null);
   }, [workflow.nodes, workflow.edges]);
 
-  const flash = (msg: string) => {
+  const flash = useCallback((msg: string) => {
     setStatusMessage(msg);
     setTimeout(() => setStatusMessage(''), 3000);
-  };
+  }, []);
 
-  const showError = (msg: string) => setErrorMessage(msg);
+  const showError = useCallback((msg: string) => setErrorMessage(msg), []);
 
-  const handleNew = () => {
+  const handleNew = useCallback(() => {
     if (confirm('Discard current workflow and start a new one?')) {
       setWorkflow(createDefaultWorkflow());
       setSelectedNodeId(null);
       setValidationResult(null);
       flash('New workflow created.');
     }
-  };
+  }, [flash]);
 
-  const handleSave = () => {
-    const json = serializeWorkflow(workflow);
+  const handleSave = useCallback(() => {
+    const wf = workflowRef.current;
+    const json = serializeWorkflow(wf);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${workflow.name.replace(/\s+/g, '-').toLowerCase()}.json`;
+    a.download = `${wf.name.replace(/\s+/g, '-').toLowerCase()}.json`;
     a.click();
     URL.revokeObjectURL(url);
     flash('Workflow saved.');
-  };
+  }, [flash]);
 
-  const handleOpen = () => fileInputRef.current?.click();
+  const handleOpen = useCallback(() => fileInputRef.current?.click(), []);
 
-  const handleFileLoad = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileLoad = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -95,15 +100,15 @@ export default function App() {
     };
     reader.readAsText(file);
     e.target.value = '';
-  };
+  }, [flash, showError]);
 
-  const handleValidate = async () => {
+  const handleValidate = useCallback(async () => {
     setIsValidating(true);
     try {
       const res = await fetch('http://localhost:8000/api/workflows/validate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ workflow }),
+        body: JSON.stringify({ workflow: workflowRef.current }),
       });
       const data = await res.json() as ValidationResult;
       setValidationResult(data);
@@ -112,9 +117,9 @@ export default function App() {
     } finally {
       setIsValidating(false);
     }
-  };
+  }, [showError]);
 
-  const handleLoadExample = () => {
+  const handleLoadExample = useCallback(() => {
     try {
       const loaded = deserializeWorkflow(JSON.stringify(customerSupportExample));
       setWorkflow(loaded);
@@ -124,25 +129,26 @@ export default function App() {
     } catch (err) {
       showError(`Failed to load example: ${(err as Error).message}`);
     }
-  };
+  }, [flash, showError]);
 
-  const handleGenerate = () => setShowGenerateModal(true);
-  const handleEditJson = () => setShowJsonEditor(true);
-  const handleJsonApply = (updated: Workflow) => {
+  const handleGenerate = useCallback(() => setShowGenerateModal(true), []);
+  const handleEditJson = useCallback(() => setShowJsonEditor(true), []);
+
+  const handleJsonApply = useCallback((updated: Workflow) => {
     setWorkflow(updated);
     setSelectedNodeId(null);
     setValidationResult(null);
     flash(`Applied JSON: ${updated.name}`);
-  };
+  }, [flash]);
 
-  const handleGenerated = (generated: Workflow) => {
+  const handleGenerated = useCallback((generated: Workflow) => {
     setWorkflow(generated);
     setSelectedNodeId(null);
     setValidationResult(null);
     flash(`Generated: ${generated.name}`);
-  };
+  }, [flash]);
 
-  const handleNameChange = (name: string) => setWorkflow((wf) => ({ ...wf, name }));
+  const handleNameChange = useCallback((name: string) => setWorkflow((wf) => ({ ...wf, name })), []);
 
   const handleNodeNameChange = useCallback((nodeId: string, name: string) => {
     setWorkflow((wf) => updateNodeName(wf, nodeId, name));

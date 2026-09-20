@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { NodeType } from '../../models/workflow';
 import { NODE_DEFINITIONS } from './nodes/nodeDefinitions';
 
@@ -14,7 +15,7 @@ const PALETTE_TYPES: NodeType[] = [
   NodeType.TRANSFORM,
 ];
 
-export function NodePalette() {
+export const NodePalette = memo(function NodePalette() {
   function onDragStart(e: React.DragEvent, type: NodeType) {
     e.dataTransfer.setData('application/aiflow-node-type', type);
     e.dataTransfer.effectAllowed = 'move';
@@ -43,4 +44,4 @@ export function NodePalette() {
       })}
     </aside>
   );
-}
+});

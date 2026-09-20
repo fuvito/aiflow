@@ -1,10 +1,11 @@
+import { memo } from 'react';
 import { Handle, Position } from '@xyflow/react';
 import type { NodeProps } from '@xyflow/react';
 import type { WorkflowRFNode } from '../WorkflowAdapter';
 import { getNodeDefinition } from './nodeDefinitions';
 import { NodeType } from '../../../models/workflow';
 
-export function WorkflowNodeComponent({ data, selected }: NodeProps<WorkflowRFNode>) {
+export const WorkflowNodeComponent = memo(function WorkflowNodeComponent({ data, selected }: NodeProps<WorkflowRFNode>) {
   const def = getNodeDefinition(data.nodeType);
   const isStart = data.nodeType === NodeType.START;
   const isEnd = data.nodeType === NodeType.END;
@@ -55,4 +56,4 @@ export function WorkflowNodeComponent({ data, selected }: NodeProps<WorkflowRFNo
       )}
     </div>
   );
-}
+});
