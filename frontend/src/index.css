@@ -256,6 +256,36 @@ body {
   background: var(--bg-raised);
 }
 
+/* Handles — make them bigger and clearly interactive */
+.react-flow__handle {
+  width: 14px !important;
+  height: 14px !important;
+  cursor: crosshair !important;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.5) !important;
+  box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.35) !important;
+}
+
+/* Live connection line drawn while dragging */
+.react-flow__connection-path {
+  stroke: var(--accent) !important;
+  stroke-width: 2 !important;
+}
+
+.react-flow__edge-path {
+  stroke: var(--text-2) !important;
+  stroke-width: 2 !important;
+}
+
+.react-flow__edge-text {
+  fill: var(--text-3) !important;
+  font-family: inherit;
+  font-size: 11px;
+}
+
 /* ── Properties Panel ─────────────────────────────────────────────── */
 .properties-panel {
   width: 264px;
@@ -621,6 +651,31 @@ body {
   gap: 8px;
   padding: 12px 18px 16px;
   border-top: 1px solid var(--border);
+}
+
+/* ── JSON editor modal ────────────────────────────────────────────── */
+.json-editor-modal {
+  width: 720px;
+  max-width: calc(100vw - 40px);
+  height: 80vh;
+  max-height: 640px;
+}
+
+.json-editor-textarea {
+  width: 100%;
+  height: calc(80vh - 130px);
+  max-height: calc(640px - 130px);
+  background: var(--bg-deep);
+  border: none;
+  border-top: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Menlo', 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 14px 18px;
+  outline: none;
+  resize: none;
+  tab-size: 2;
 }
 
 /* ── Spinner ──────────────────────────────────────────────────────── */

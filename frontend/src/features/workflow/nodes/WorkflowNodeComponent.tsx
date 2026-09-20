@@ -26,7 +26,7 @@ export function WorkflowNodeComponent({ data, selected }: NodeProps<WorkflowRFNo
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: selected ? `0 0 0 3px ${def.color}66` : '0 2px 6px rgba(0,0,0,0.4)',
-        cursor: 'default',
+        cursor: 'grab',
         userSelect: 'none',
         fontFamily: 'monospace',
       }}
@@ -35,7 +35,7 @@ export function WorkflowNodeComponent({ data, selected }: NodeProps<WorkflowRFNo
         <Handle
           type="target"
           position={Position.Top}
-          style={{ background: '#fff', border: `2px solid ${def.color}` }}
+          style={{ background: '#fff', border: `3px solid ${def.color}`, width: 14, height: 14 }}
         />
       )}
 
@@ -50,7 +50,7 @@ export function WorkflowNodeComponent({ data, selected }: NodeProps<WorkflowRFNo
         <Handle
           type="source"
           position={Position.Bottom}
-          style={{ background: '#fff', border: `2px solid ${def.color}` }}
+          style={{ background: '#fff', border: `3px solid ${def.color}`, width: 14, height: 14 }}
         />
       )}
     </div>

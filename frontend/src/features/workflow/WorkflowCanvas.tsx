@@ -44,7 +44,7 @@ interface Props {
 }
 
 function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Props) {
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, addNodes } = useReactFlow();
   const { nodes: rfNodes, edges: rfEdges } = workflowToReactFlow(workflow);
 
   const rfNodesWithSelection = rfNodes.map((n) => ({
@@ -64,7 +64,11 @@ function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Pr
         onWorkflowChange(wf);
         return;
       }
-      const updated = applyNodeChanges(changes, rfNodes) as WorkflowRFNode[];
+      // Only sync position changes back to domain model; ignore dimensions/select/add
+      // to avoid stale closure overwriting freshly added nodes
+      const positionChanges = changes.filter((c) => c.type === 'position');
+      if (positionChanges.length === 0) return;
+      const updated = applyNodeChanges(positionChanges, rfNodes) as WorkflowRFNode[];
       onWorkflowChange(applyNodePositions(workflow, updated as RFNode[]));
     },
     [workflow, rfNodes, selectedNodeId, onWorkflowChange, onSelectNode],
@@ -97,9 +101,20 @@ function Canvas({ workflow, selectedNodeId, onWorkflowChange, onSelectNode }: Pr
       const type = e.dataTransfer.getData('application/aiflow-node-type') as NodeType;
       if (!type || !Object.values(NodeType).includes(type)) return;
       const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
-      onWorkflowChange(addNode(workflow, type, position));
+      const newWorkflow = addNode(workflow, type, position);
+      const newNode = newWorkflow.nodes[newWorkflow.nodes.length - 1];
+      const isCircle = type === NodeType.START || type === NodeType.END;
+      addNodes([{
+        id: newNode.id,
+        type: 'workflowNode' as const,
+        position,
+        data: { nodeType: type, label: newNode.name },
+        width: isCircle ? 64 : 160,
+        ...(isCircle ? { height: 64 } : {}),
+      }]);
+      onWorkflowChange(newWorkflow);
     },
-    [workflow, screenToFlowPosition, onWorkflowChange],
+    [workflow, screenToFlowPosition, addNodes, onWorkflowChange],
   );
 
   return (

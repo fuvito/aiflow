@@ -1,5 +1,5 @@
 import type { Node as RFNode, Edge as RFEdge } from '@xyflow/react';
-import type { Workflow, WorkflowNode, WorkflowEdge, NodeType } from '../../models/workflow';
+import { NodeType, type Workflow, type WorkflowNode, type WorkflowEdge } from '../../models/workflow';
 
 export interface RFNodeData extends Record<string, unknown> {
   nodeType: NodeType;
@@ -12,12 +12,18 @@ export function workflowToReactFlow(workflow: Workflow): {
   nodes: WorkflowRFNode[];
   edges: RFEdge[];
 } {
-  const nodes: WorkflowRFNode[] = workflow.nodes.map((n) => ({
-    id: n.id,
-    type: 'workflowNode' as const,
-    position: { x: n.position.x, y: n.position.y },
-    data: { nodeType: n.type, label: n.name },
-  }));
+  const nodes: WorkflowRFNode[] = workflow.nodes.map((n) => {
+    const isCircle = n.type === NodeType.START || n.type === NodeType.END;
+    return {
+      id: n.id,
+      type: 'workflowNode' as const,
+      position: { x: n.position.x, y: n.position.y },
+      data: { nodeType: n.type, label: n.name },
+      // explicit width prevents React Flow starting at 0; height measured from DOM for rect nodes
+      width: isCircle ? 64 : 160,
+      ...(isCircle ? { height: 64 } : {}),
+    };
+  });
 
   const edges: RFEdge[] = workflow.edges.map((e, i) => ({
     id: `edge-${e.source}-${e.target}-${i}`,

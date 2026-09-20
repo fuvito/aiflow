@@ -8,6 +8,7 @@ interface Props {
   onLoadExample: () => void;
   onValidate: () => void;
   onGenerate: () => void;
+  onEditJson: () => void;
   onNameChange: (name: string) => void;
   isValidating?: boolean;
   validationResult?: ValidationResult | null;
@@ -23,6 +24,7 @@ export function Toolbar({
   onLoadExample,
   onValidate,
   onGenerate,
+  onEditJson,
   onNameChange,
   isValidating,
   validationResult,
@@ -71,6 +73,7 @@ export function Toolbar({
         >
           {isDark ? '☀' : '☾'}
         </button>
+        <button className="btn btn-ghost" onClick={onEditJson} title="Edit workflow JSON">JSON</button>
         <button className="btn btn-primary" onClick={onGenerate}>Generate</button>
       </div>
     </header>

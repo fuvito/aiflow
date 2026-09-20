@@ -8,6 +8,7 @@ import { PropertiesPanel } from './features/workflow/PropertiesPanel';
 import { ValidationPanel } from './features/workflow/ValidationPanel';
 import type { ValidationResult } from './features/workflow/ValidationPanel';
 import { GenerateModal } from './features/workflow/GenerateModal';
+import { WorkflowJsonEditor } from './features/workflow/WorkflowJsonEditor';
 import {
   createDefaultWorkflow,
   serializeWorkflow,
@@ -28,6 +29,7 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isValidating, setIsValidating] = useState(false);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
+  const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('aiflow-theme') !== 'light');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -125,6 +127,13 @@ export default function App() {
   };
 
   const handleGenerate = () => setShowGenerateModal(true);
+  const handleEditJson = () => setShowJsonEditor(true);
+  const handleJsonApply = (updated: Workflow) => {
+    setWorkflow(updated);
+    setSelectedNodeId(null);
+    setValidationResult(null);
+    flash(`Applied JSON: ${updated.name}`);
+  };
 
   const handleGenerated = (generated: Workflow) => {
     setWorkflow(generated);
@@ -153,6 +162,7 @@ export default function App() {
         onLoadExample={handleLoadExample}
         onValidate={handleValidate}
         onGenerate={handleGenerate}
+        onEditJson={handleEditJson}
         onNameChange={handleNameChange}
         isValidating={isValidating}
         validationResult={validationResult}
@@ -197,6 +207,14 @@ export default function App() {
         <GenerateModal
           onClose={() => setShowGenerateModal(false)}
           onGenerated={handleGenerated}
+        />
+      )}
+
+      {showJsonEditor && (
+        <WorkflowJsonEditor
+          workflow={workflow}
+          onApply={handleJsonApply}
+          onClose={() => setShowJsonEditor(false)}
         />
       )}
 
