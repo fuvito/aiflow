@@ -176,7 +176,30 @@ Vitest / React Testing Library coverage for:
 
 ---
 
-## Phase 10 — Documentation
+## Phase 10 — Workflow Report
+
+### Task 18 — Export Report `[ ]`
+
+Generate a human-readable report of the current workflow.
+
+**Export formats (user selects at export time):**
+- **Image only** — PNG/SVG snapshot of the canvas (node layout, edges, colors)
+- **Image + JSON** — canvas image bundled with the raw `workflow.json`
+
+**Future report enhancements (not in MVP1):**
+- **Node & edge notes** — each node and each edge gets an optional `notes` field in the domain model; notes surface in the report as annotations
+- **Report with notes** — third export option; renders the image alongside a structured table of node names, types, config, and notes; edges listed with condition and notes
+- **PDF export** — wrap image + notes table into a single PDF
+
+**Implementation notes:**
+- Canvas snapshot: use `html-to-image` or React Flow's built-in `getViewport` + canvas draw
+- Report modal: let user pick format before downloading
+- `notes` field addition is a non-breaking model change (optional string, defaults to `""`)
+- Properties panel should expose a "Notes" textarea for each node/edge once the field is added
+
+---
+
+## Phase 11 — Documentation
 
 ### Task 17 — README `[x]`
 
