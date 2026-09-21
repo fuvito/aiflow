@@ -184,6 +184,8 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
         onEdgeClick={onEdgeClick}
         onPaneClick={() => { onSelectNode(null); onSelectEdge(null); }}
         deleteKeyCode="Delete"
+        snapToGrid
+        snapGrid={[20, 20]}
         nodesDraggable={isInteractive}
         nodesConnectable={isInteractive}
         elementsSelectable={isInteractive}
