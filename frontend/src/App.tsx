@@ -372,6 +372,15 @@ export default function App() {
     for (const step of visibleSteps) {
       result[step.node_id] = step.status;
     }
+    // During animated playback, mark the most-recently-revealed step as 'running'
+    // so the canvas auto-scroll (which watches for 'running') stays in sync.
+    const isAnimating = simulationSettings.display_mode === 'animated'
+      && currentSimStep > 0
+      && currentSimStep <= simulationTrace.steps.length;
+    if (isAnimating) {
+      const latest = simulationTrace.steps[currentSimStep - 1];
+      if (latest) result[latest.node_id] = 'running';
+    }
     return result;
   }, [simulationTrace, simulationSettings, currentSimStep, workflow.nodes]);
 
