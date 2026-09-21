@@ -405,6 +405,16 @@ export default function App() {
     ? (simulationTrace?.steps.length ?? 0)
     : currentSimStep;
 
+  const traversedEdgeIds = useMemo(() => {
+    if (!simulationTrace) return null;
+    const steps = simulationTrace.steps.slice(0, visibleSimStep);
+    const ids = new Set<string>();
+    for (let i = 1; i < steps.length; i++) {
+      ids.add(`${steps[i - 1].node_id}→${steps[i].node_id}`);
+    }
+    return ids;
+  }, [simulationTrace, visibleSimStep]);
+
   return (
     <div className="app">
       <Toolbar
@@ -444,6 +454,7 @@ export default function App() {
             onSelectNode={setSelectedNodeId}
             onSelectEdge={setSelectedEdgeId}
             nodeStatuses={simulationTrace ? nodeStatuses : undefined}
+            traversedEdgeIds={simulationTrace ? traversedEdgeIds : null}
             autoLayoutRevision={autoLayoutRevision}
             onAutoLayout={handleAutoLayout}
           />

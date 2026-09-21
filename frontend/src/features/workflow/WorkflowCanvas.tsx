@@ -53,11 +53,12 @@ interface Props {
   onSelectNode: (nodeId: string | null) => void;
   onSelectEdge: (edgeId: string | null) => void;
   nodeStatuses?: Record<string, string>;
+  traversedEdgeIds?: Set<string> | null;
   autoLayoutRevision?: number;
   onAutoLayout?: () => void;
 }
 
-const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, onWorkflowChange, onSelectNode, onSelectEdge, nodeStatuses, autoLayoutRevision, onAutoLayout }: Props) {
+const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, onWorkflowChange, onSelectNode, onSelectEdge, nodeStatuses, traversedEdgeIds, autoLayoutRevision, onAutoLayout }: Props) {
   const { screenToFlowPosition, addNodes, setCenter, getZoom, getNode, fitView } = useReactFlow();
   const [isInteractive, setIsInteractive] = useState(true);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -89,8 +90,18 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
   );
 
   const rfEdgesWithSelection = useMemo(
-    () => rfEdges.map((e) => ({ ...e, selected: e.id === selectedEdgeId })),
-    [rfEdges, selectedEdgeId],
+    () => rfEdges.map((e) => {
+      const traversed = traversedEdgeIds ? traversedEdgeIds.has(e.id) : null;
+      return {
+        ...e,
+        selected: e.id === selectedEdgeId,
+        style: traversed === null ? undefined
+          : traversed
+          ? { stroke: '#60a5fa', strokeWidth: 2.5 }
+          : { stroke: 'var(--border)', opacity: 0.3 },
+      };
+    }),
+    [rfEdges, selectedEdgeId, traversedEdgeIds],
   );
 
   useEffect(() => {
