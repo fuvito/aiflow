@@ -153,7 +153,7 @@ Click **Examples** → an example picker opens with 10 pre-built, simulation-rea
 | Medium | 6–10 | Customer support, Content moderation, Invoice processing, HR onboarding |
 | Complex | 11+ | AI research agent, Supply chain monitor, Multi-tier customer journey |
 
-Search by name, industry, or tag. Click any card to load the workflow onto the canvas.
+Search by name, industry, or tag. Click any card to load the workflow onto the canvas. Every example ships with a pre-populated **sample input**, so you can click **Simulate → Run Simulation** immediately without typing anything.
 
 ### Add Nodes
 Drag a node type from the left panel onto the canvas.
@@ -170,6 +170,13 @@ Click **Validate** → errors and warnings appear in a panel below the canvas. T
 ### Simulate
 
 Click **Simulate** → configure settings → click **Run Simulation**. The backend executes a mock BFS traversal of your workflow graph from `START` to `END`. Results appear in the right sidebar panel (which replaces the Properties panel for the duration of the simulation), keeping the canvas fully visible.
+
+#### Sample Input
+
+The **Sample input** field accepts a JSON object that is passed to the `START` node as the initial data. It flows through the workflow and is transformed by each node.
+
+- **Persists automatically** — the last-used input is saved as part of the workflow and restored every time you open the modal (survives page refresh via localStorage).
+- **Suggest fields ✦** button — scans all node configs in the workflow (LLM prompt templates, condition expressions, API URL parameters, input schemas) and generates a JSON object with realistic placeholder values. Use this as a starting point rather than typing from scratch.
 
 #### Simulation Settings
 
@@ -220,12 +227,26 @@ In mock mode (the default) the evaluation is generated deterministically from th
 The simulation engine supports a `llm_mode: real` path (not yet exposed in the UI). Setting this will route LLM, API, RAG, and TOOL nodes through actual providers instead of mock handlers. Requires valid credentials in `backend/.env`.
 
 ### Generate with AI
-Click **Generate** → describe your workflow in natural language → click Generate (or Ctrl+Enter).
+Click **Generate** → a chat panel opens. Describe your workflow in plain English and send the message. The AI responds in one of two ways:
+
+- **If the description is detailed enough**, it generates the workflow immediately and shows a **Load to Canvas** card.
+- **If it needs clarification**, it asks one focused question. Answer it and the workflow is generated on the next turn (maximum 2 questions before it makes reasonable assumptions and generates anyway).
+
+Once a **Load to Canvas** card appears, click it to load the result. You can keep chatting to regenerate with adjustments — each reply that produces a workflow replaces the previous card.
 
 Requires `LLM_API_KEY` in `backend/.env`.
 
-**Example prompt:**
+**Example opening message:**
 > Create a customer support agent that classifies requests, searches the knowledge base, retrieves customer info, and routes complex cases to a human reviewer.
+
+### Refine with AI
+Click **Refine** (enabled once your canvas has more than two nodes) → the same chat panel opens, but with the current workflow already loaded as context. Describe the change you want:
+
+> Add error handling — if the API call fails, route to a fallback LLM node that generates a response from cached data.
+
+> Replace the single CONDITION node with two separate routing steps — first by tier, then by issue type.
+
+The AI returns a complete updated workflow preserving all unchanged node IDs and positions. Click **Load to Canvas** to apply it. The previous state is on the undo stack (`Ctrl+Z`) if you want to revert.
 
 ### Save / Open
 - **Save** downloads `<workflow-name>.json`
