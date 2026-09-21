@@ -151,7 +151,13 @@ export function GenerateModal({ currentWorkflow, onClose, onGenerated }: Props) 
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder={isRefinement ? 'What changes would you like?' : 'Describe your workflow…'}
+            placeholder={
+              isLoading
+                ? 'Waiting for response…'
+                : isRefinement
+                ? 'What changes would you like?'
+                : 'Describe your workflow…'
+            }
             rows={2}
             disabled={isLoading}
           />
@@ -160,7 +166,7 @@ export function GenerateModal({ currentWorkflow, onClose, onGenerated }: Props) 
             onClick={handleSend}
             disabled={isLoading || !input.trim()}
           >
-            Send
+            {isLoading ? <><span className="spinner" /> Thinking…</> : 'Send'}
           </button>
         </div>
       </div>
