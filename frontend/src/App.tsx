@@ -315,6 +315,23 @@ export default function App() {
     setCurrentSimStep(settings.display_mode === 'instant' ? trace.steps.length : 0);
   }, []);
 
+  const handleRerun = useCallback(async () => {
+    if (!simulationSettings) return;
+    const input = (workflowRef.current.metadata?.sample_input ?? {}) as Record<string, unknown>;
+    try {
+      const res = await fetch('http://localhost:8000/api/workflows/simulate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ workflow: workflowRef.current, input, settings: simulationSettings }),
+      });
+      const data = await res.json() as { trace?: ExecutionTrace; evaluation?: SimulationEvaluation; detail?: string };
+      if (!res.ok || !data.trace) { showError(data.detail ?? `Re-run failed (${res.status})`); return; }
+      handleSimulated(data.trace, data.evaluation ?? null, simulationSettings);
+    } catch {
+      showError('Could not reach backend. Is it running on port 8000?');
+    }
+  }, [simulationSettings, showError, handleSimulated]);
+
   const handleResume = useCallback(async (nodeId: string, decision: 'approve' | 'reject') => {
     if (!simulationTrace) return;
     try {
@@ -446,6 +463,7 @@ export default function App() {
             visibleStepCount={visibleSimStep}
             onAdvanceStep={() => setCurrentSimStep((s) => Math.min(s + 1, simulationTrace.steps.length))}
             onResume={handleResume}
+            onRerun={handleRerun}
             onClear={handleClearTrace}
           />
         ) : (

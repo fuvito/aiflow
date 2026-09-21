@@ -1567,6 +1567,26 @@ body {
 .trace-status--complete { background: rgba(74, 222, 128, 0.15); color: #4ade80; }
 .trace-status--error    { background: rgba(248, 113, 113, 0.15); color: #f87171; }
 
+.trace-step-counter {
+  color: var(--text-3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.trace-summary {
+  align-items: center;
+  background: var(--bg-deep);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px;
+}
+.trace-summary-stat { color: var(--text-2); font-size: 12px; }
+.trace-summary-stat--error { color: #f87171; }
+.trace-summary-value { color: var(--text-1); font-weight: 600; }
+.trace-summary-sep { color: var(--text-3); font-size: 12px; }
+
 .trace-steps {
   flex: 1;
   overflow-y: auto;

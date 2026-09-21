@@ -10,6 +10,7 @@ interface Props {
   visibleStepCount: number;
   onAdvanceStep: () => void;
   onResume: (nodeId: string, decision: 'approve' | 'reject') => void;
+  onRerun: () => Promise<void>;
   onClear: () => void;
 }
 
@@ -34,7 +35,7 @@ function StepRow({ step }: { step: NodeExecution }) {
   const color = STATUS_COLOR[step.status] ?? '#a0a0a0';
   const duration =
     step.started_at && step.completed_at
-      ? `${Math.round((new Date(step.completed_at).getTime() - new Date(step.started_at).getTime()))}ms`
+      ? `${Math.round(new Date(step.completed_at).getTime() - new Date(step.started_at).getTime())}ms`
       : step.status === 'waiting' ? 'waiting…' : '';
 
   return (
@@ -63,8 +64,39 @@ function StepRow({ step }: { step: NodeExecution }) {
   );
 }
 
-export function TracePanel({ trace, evaluation, settings, visibleStepCount, onAdvanceStep, onResume, onClear }: Props) {
+function TraceSummary({ trace }: { trace: ExecutionTrace }) {
+  const total = trace.steps.length;
+  const failed = trace.steps.filter((s) => s.status === 'error').length;
+  const totalMs = trace.started_at && trace.completed_at
+    ? Math.round(new Date(trace.completed_at).getTime() - new Date(trace.started_at).getTime())
+    : null;
+
+  return (
+    <div className="trace-summary">
+      <span className="trace-summary-stat">
+        <span className="trace-summary-value">{total}</span> nodes
+      </span>
+      <span className="trace-summary-sep">·</span>
+      <span className={`trace-summary-stat${failed > 0 ? ' trace-summary-stat--error' : ''}`}>
+        <span className="trace-summary-value">{failed}</span> failed
+      </span>
+      {totalMs !== null && (
+        <>
+          <span className="trace-summary-sep">·</span>
+          <span className="trace-summary-stat">
+            <span className="trace-summary-value">
+              {totalMs >= 1000 ? `${(totalMs / 1000).toFixed(1)}s` : `${totalMs}ms`}
+            </span>
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+
+export function TracePanel({ trace, evaluation, settings, visibleStepCount, onAdvanceStep, onResume, onRerun, onClear }: Props) {
   const [activeTab, setActiveTab] = useState<'trace' | 'evaluation'>('trace');
+  const [isRerunning, setIsRerunning] = useState(false);
 
   const visibleSteps = trace.steps.slice(0, visibleStepCount);
   const pausedStep = trace.status === 'paused'
@@ -72,13 +104,20 @@ export function TracePanel({ trace, evaluation, settings, visibleStepCount, onAd
     : null;
   const isManual = settings.display_mode === 'manual';
   const canAdvance = isManual && visibleStepCount < trace.steps.length;
+  const isComplete = trace.status === 'complete';
+  const isProgressive = settings.display_mode !== 'instant';
+  const allRevealed = visibleStepCount >= trace.steps.length;
 
-  // Switch to evaluation tab once all steps are visible and evaluation has arrived
   useEffect(() => {
     if (evaluation && visibleStepCount >= trace.steps.length) {
       setActiveTab('evaluation');
     }
   }, [evaluation, visibleStepCount, trace.steps.length]);
+
+  const handleRerun = async () => {
+    setIsRerunning(true);
+    try { await onRerun(); } finally { setIsRerunning(false); }
+  };
 
   return (
     <div className="sim-side-panel">
@@ -92,8 +131,25 @@ export function TracePanel({ trace, evaluation, settings, visibleStepCount, onAd
             body="Shows each step of the simulation in execution order. Each row shows the node's status (● success / ● error / ● waiting), type, name, and duration.\n\nClick any row to expand it and inspect the exact input and output JSON for that node."
           />
         </span>
-        <button className="btn btn-ghost sim-side-clear" onClick={onClear}>Clear</button>
+        <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+          {isProgressive && trace.steps.length > 0 && (
+            <span className="trace-step-counter">
+              {Math.min(visibleStepCount, trace.steps.length)} / {trace.steps.length}
+            </span>
+          )}
+          <button
+            className="btn btn-ghost sim-side-clear"
+            onClick={handleRerun}
+            disabled={isRerunning || trace.status === 'running' || trace.status === 'paused'}
+            title="Re-run with same settings"
+          >
+            {isRerunning ? <><span className="spinner" /> Re-running…</> : '↺ Re-run'}
+          </button>
+          <button className="btn btn-ghost sim-side-clear" onClick={onClear}>Clear</button>
+        </div>
       </div>
+
+      {isComplete && allRevealed && <TraceSummary trace={trace} />}
 
       {pausedStep && (
         <div className="sim-hitl-banner">
