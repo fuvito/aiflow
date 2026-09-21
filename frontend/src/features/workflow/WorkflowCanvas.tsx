@@ -35,6 +35,8 @@ import type { WorkflowRFNode } from './WorkflowAdapter';
 import { WorkflowNodeComponent } from './nodes/WorkflowNodeComponent';
 import { getNodeDefinition } from './nodes/nodeDefinitions';
 import { DeletableEdge } from './edges/DeletableEdge';
+import { CanvasContextMenu } from './CanvasContextMenu';
+import type { ContextMenuState } from './CanvasContextMenu';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const nodeTypes = { workflowNode: WorkflowNodeComponent as any };
@@ -56,6 +58,7 @@ interface Props {
 const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, onWorkflowChange, onSelectNode, onSelectEdge, nodeStatuses, autoLayoutRevision, onAutoLayout }: Props) {
   const { screenToFlowPosition, addNodes, setCenter, getZoom, getNode, fitView } = useReactFlow();
   const [isInteractive, setIsInteractive] = useState(true);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const { nodes: rfNodes, edges: rfEdgesRaw } = useMemo(
     () => workflowToReactFlow(workflow),
@@ -149,6 +152,40 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
     [workflow, rfEdges, onWorkflowChange],
   );
 
+  const handleContextMenuDuplicate = useCallback((nodeId: string) => {
+    const src = workflow.nodes.find((n) => n.id === nodeId);
+    if (!src) return;
+    const newId = `${src.type.toLowerCase()}-${crypto.randomUUID().slice(0, 8)}`;
+    onWorkflowChange({
+      ...workflow,
+      nodes: [...workflow.nodes, { ...src, id: newId, position: { x: src.position.x + 40, y: src.position.y + 40 } }],
+    });
+  }, [workflow, onWorkflowChange]);
+
+  const handleContextMenuDelete = useCallback((nodeId: string) => {
+    onWorkflowChange({
+      ...workflow,
+      nodes: workflow.nodes.filter((n) => n.id !== nodeId),
+      edges: workflow.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
+    });
+    if (nodeId === selectedNodeId) onSelectNode(null);
+  }, [workflow, onWorkflowChange, selectedNodeId, onSelectNode]);
+
+  const handleContextMenuAddNode = useCallback((type: NodeType, position: { x: number; y: number }) => {
+    const newWorkflow = addNode(workflow, type, position);
+    const newNode = newWorkflow.nodes[newWorkflow.nodes.length - 1];
+    const isCircle = type === NodeType.START || type === NodeType.END;
+    addNodes([{
+      id: newNode.id,
+      type: 'workflowNode' as const,
+      position,
+      data: { nodeType: type, label: newNode.name },
+      width: isCircle ? 64 : 160,
+      ...(isCircle ? { height: 64 } : {}),
+    }]);
+    onWorkflowChange(newWorkflow);
+  }, [workflow, addNodes, onWorkflowChange]);
+
   const onDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -188,9 +225,18 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
         onConnect={onConnect}
         onDrop={onDrop}
         onDragOver={onDragOver}
-        onNodeClick={(_, node) => { onSelectNode(node.id); onSelectEdge(null); }}
+        onNodeClick={(_, node) => { onSelectNode(node.id); onSelectEdge(null); setContextMenu(null); }}
         onEdgeClick={onEdgeClick}
-        onPaneClick={() => { onSelectNode(null); onSelectEdge(null); }}
+        onPaneClick={() => { onSelectNode(null); onSelectEdge(null); setContextMenu(null); }}
+        onNodeContextMenu={(e, node) => {
+          e.preventDefault();
+          setContextMenu({ type: 'node', screenX: e.clientX, screenY: e.clientY, nodeId: node.id });
+        }}
+        onPaneContextMenu={(e) => {
+          e.preventDefault();
+          const pos = screenToFlowPosition({ x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY });
+          setContextMenu({ type: 'pane', screenX: (e as React.MouseEvent).clientX, screenY: (e as React.MouseEvent).clientY, flowPosition: pos });
+        }}
         deleteKeyCode="Delete"
         snapToGrid
         snapGrid={[20, 20]}
@@ -238,6 +284,15 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
           nodeStrokeWidth={3}
         />
       </ReactFlow>
+      {contextMenu && (
+        <CanvasContextMenu
+          menu={contextMenu}
+          onClose={() => setContextMenu(null)}
+          onDuplicate={handleContextMenuDuplicate}
+          onDelete={handleContextMenuDelete}
+          onAddNode={handleContextMenuAddNode}
+        />
+      )}
     </div>
   );
 });
