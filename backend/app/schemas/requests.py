@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.models.workflow import Workflow
 
 
 class GenerateWorkflowRequest(BaseModel):
-    description: str
+    description: str = Field(..., min_length=1, max_length=2000)
 
 
 class GenerateWorkflowResponse(BaseModel):

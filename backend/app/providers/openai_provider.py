@@ -29,7 +29,12 @@ Schema:
       "condition": "<optional label, e.g. simple / complex / yes / no>"
     }
   ],
-  "metadata": {}
+  "metadata": {
+    "sample_input": {
+      "<field-name>": "<representative value>",
+      "...": "..."
+    }
+  }
 }
 
 Node types (use the exact string):
@@ -55,6 +60,7 @@ Constraints:
   - Every node except END must have at least one outgoing edge.
   - Every node except START must have at least one incoming edge.
   - Fill config fields with meaningful values based on the description.
+  - metadata.sample_input: a flat JSON object with 2–5 key-value pairs representing realistic initial input for this workflow (e.g. { "user_id": "usr_123", "message": "How do I reset my password?" }). Keys must match what the workflow logic actually needs.
 """.strip()
 
 
