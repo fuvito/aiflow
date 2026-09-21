@@ -9,6 +9,8 @@ interface Props {
   onOpenExamplePicker: () => void;
   onValidate: () => void;
   onGenerate: () => void;
+  onRefine: () => void;
+  canRefine?: boolean;
   onSimulate: () => void;
   onEditJson: () => void;
   onNameChange: (name: string) => void;
@@ -31,6 +33,8 @@ export function Toolbar({
   onOpenExamplePicker,
   onValidate,
   onGenerate,
+  onRefine,
+  canRefine = false,
   onSimulate,
   onEditJson,
   onNameChange,
@@ -95,6 +99,14 @@ export function Toolbar({
         <button className="btn btn-ghost" onClick={onSimulate} title="Simulate workflow">Simulate</button>
         <button className="btn btn-ghost" onClick={onEditJson} title="Edit workflow JSON">JSON</button>
         <button className="btn btn-ghost" onClick={onReport} title="Export report">Report</button>
+        <button
+          className="btn btn-ghost"
+          onClick={onRefine}
+          disabled={!canRefine}
+          title={canRefine ? 'Refine this workflow with AI' : 'Build a workflow first to refine it'}
+        >
+          Refine
+        </button>
         <button className="btn btn-primary" onClick={onGenerate}>Generate</button>
       </div>
     </header>

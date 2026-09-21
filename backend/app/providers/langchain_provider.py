@@ -64,6 +64,50 @@ Constraints:
   - metadata.sample_input: a flat JSON object with 2–5 key-value pairs representing realistic initial input for this workflow (e.g. { "user_id": "usr_123", "message": "How do I reset my password?" }). Keys must match what the workflow logic actually needs.
 """.strip()
 
+_CHAT_SYSTEM_PROMPT = """
+You are an expert AI workflow designer helping users design AI agent workflows through conversation.
+
+ALWAYS respond with ONLY valid JSON — no extra text, no markdown:
+
+While gathering information:
+{ "status": "gathering", "reply": "<your message or question>", "workflow": null, "sample_input": null }
+
+When ready to generate (or update):
+{ "status": "ready", "reply": "<brief friendly confirmation>", "workflow": { <complete workflow> }, "sample_input": { "<key>": "<value>", ... } }
+
+DECISION RULES:
+- If the user's first message is specific enough to build a good workflow, respond status=ready immediately.
+- Ask at most ONE focused question per turn. Never ask more than 2 questions before generating.
+- Make reasonable assumptions rather than asking about minor details.
+- Keep replies short and friendly.
+
+WORKFLOW SCHEMA:
+{
+  "version": "1.0",
+  "id": "<uuid-v4>",
+  "name": "<short workflow name>",
+  "description": "<one sentence>",
+  "nodes": [{ "id": "<kebab-id>", "type": "<NODE_TYPE>", "name": "<name>", "position": { "x": 0, "y": 0 }, "config": {} }],
+  "edges": [{ "source": "<id>", "target": "<id>", "condition": "<optional label>" }],
+  "metadata": {}
+}
+
+NODE TYPES: START (entry, no config, exactly one) · END (exit, no config) · LLM (config: model, prompt, temperature) · TOOL (config: name, description) · API (config: method, url) · DATABASE (config: type, connection, query) · RAG (config: knowledgeBase, topK) · CONDITION (config: expression) · HITL (config: instructions) · TRANSFORM (config: description)
+
+LAYOUT: main path x=300 y=100+160*level; CONDITION left branch x=150 right x=450; CONDITION edges must have condition label.
+
+CONSTRAINTS: unique kebab-case ids; every non-END has outgoing edge; every non-START has incoming edge; fill configs with meaningful values; sample_input: 2–5 realistic key-value pairs matching the workflow's initial input.
+""".strip()
+
+_CHAT_REFINE_ADDON = """
+
+REFINEMENT MODE: The user already has an existing workflow. Apply their requested changes.
+- Respond status=ready immediately if the request is clear.
+- Preserve existing node IDs and positions for unchanged nodes.
+- Return the COMPLETE updated workflow (not a partial diff).
+- Update sample_input if the changes affect workflow inputs.
+""".strip()
+
 
 class LangChainProvider(LLMProvider):
     def __init__(self, base_url: str | None, api_key: str, model: str) -> None:
@@ -82,6 +126,32 @@ class LangChainProvider(LLMProvider):
         messages = [SystemMessage(content=_SYSTEM_PROMPT), HumanMessage(content=description)]
         chain = self._llm | self._parser
         result = await chain.ainvoke(messages)
+        return result  # type: ignore[return-value]
+
+    async def chat_workflow(
+        self,
+        messages: list[dict],
+        current_workflow: dict | None = None,
+    ) -> dict:
+        import json as _json
+        system = _CHAT_SYSTEM_PROMPT
+        if current_workflow:
+            system = (
+                system
+                + "\n\n"
+                + _CHAT_REFINE_ADDON
+                + "\n\nCurrent workflow:\n"
+                + _json.dumps(current_workflow, indent=2)
+            )
+        from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+        lc_messages = [SystemMessage(content=system)]
+        for m in messages:
+            if m["role"] == "user":
+                lc_messages.append(HumanMessage(content=m["content"]))
+            else:
+                lc_messages.append(AIMessage(content=m["content"]))
+        chain = self._llm | self._parser
+        result = await chain.ainvoke(lc_messages)
         return result  # type: ignore[return-value]
 
     async def complete_json(self, system: str, user: str) -> dict:

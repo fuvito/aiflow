@@ -4,6 +4,8 @@ from app.schemas.requests import (
     GenerateWorkflowResponse,
     ValidateWorkflowRequest,
     ValidateWorkflowResponse,
+    WorkflowChatRequest,
+    WorkflowChatResponse,
 )
 from app.schemas.simulation import (
     LLMMode,
@@ -12,7 +14,7 @@ from app.schemas.simulation import (
     SimulateWorkflowResponse,
 )
 from app.services.validator import validate_workflow
-from app.services.workflow_generator import generate_workflow, WorkflowGenerationError
+from app.services.workflow_generator import generate_workflow, chat_workflow_service, WorkflowGenerationError
 from app.services.simulator import simulate, resume_simulation, get_paused_settings, SimulationError
 from app.services.evaluator import mock_evaluate, llm_evaluate, EvaluationError
 from app.providers.factory import get_provider
@@ -48,6 +50,19 @@ async def generate(request: GenerateWorkflowRequest):
         raise HTTPException(status_code=422, detail=str(exc))
 
     return GenerateWorkflowResponse(workflow=workflow)
+
+
+@router.post("/workflows/chat", response_model=WorkflowChatResponse)
+async def chat_workflow(request: WorkflowChatRequest):
+    try:
+        provider = get_provider()
+    except RuntimeError as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+
+    try:
+        return await chat_workflow_service(request.messages, request.current_workflow, provider)
+    except WorkflowGenerationError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
 
 
 @router.post("/workflows/simulate", response_model=SimulateWorkflowResponse)

@@ -192,6 +192,9 @@ export default function App() {
   }, [flash, reset]);
 
   const handleGenerate = useCallback(() => setShowGenerateModal(true), []);
+  const [showRefineModal, setShowRefineModal] = useState(false);
+  const handleRefine = useCallback(() => setShowRefineModal(true), []);
+  const canRefine = workflow.nodes.length > 2;
   const handleEditJson = useCallback(() => setShowJsonEditor(true), []);
   const handleReport = useCallback(() => setShowReportModal(true), []);
 
@@ -321,6 +324,8 @@ export default function App() {
         onOpenExamplePicker={handleOpenExamplePicker}
         onValidate={handleValidate}
         onGenerate={handleGenerate}
+        onRefine={handleRefine}
+        canRefine={canRefine}
         onSimulate={handleSimulate}
         onEditJson={handleEditJson}
         onNameChange={handleNameChange}
@@ -395,6 +400,14 @@ export default function App() {
       {showGenerateModal && (
         <GenerateModal
           onClose={() => setShowGenerateModal(false)}
+          onGenerated={handleGenerated}
+        />
+      )}
+
+      {showRefineModal && (
+        <GenerateModal
+          currentWorkflow={workflow}
+          onClose={() => setShowRefineModal(false)}
           onGenerated={handleGenerated}
         />
       )}

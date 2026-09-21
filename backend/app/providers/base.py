@@ -7,6 +7,19 @@ class LLMProvider(ABC):
         """Call the LLM and return a raw workflow dict."""
         ...
 
+    async def chat_workflow(
+        self,
+        messages: list[dict],
+        current_workflow: dict | None = None,
+    ) -> dict:
+        """Multi-turn chat that returns { status, reply, workflow?, sample_input? }.
+
+        Override in providers that support it; falls back to NotImplementedError.
+        """
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not implement chat_workflow."
+        )
+
     async def complete_json(self, system: str, user: str) -> dict:
         """Call the LLM with arbitrary system/user prompts and return a JSON dict.
 

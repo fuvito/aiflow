@@ -1,56 +1,82 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Workflow } from '../../models/workflow';
-import { HelpIcon } from '../../components/HelpIcon';
 
 interface Props {
+  currentWorkflow?: Workflow;
   onClose: () => void;
   onGenerated: (workflow: Workflow) => void;
 }
 
-export function GenerateModal({ onClose, onGenerated }: Props) {
-  const [description, setDescription] = useState('');
+type Message = {
+  role: 'user' | 'assistant';
+  content: string;
+  readyWorkflow?: Workflow;
+};
+
+export function GenerateModal({ currentWorkflow, onClose, onGenerated }: Props) {
+  const isRefinement = !!currentWorkflow;
+
+  const [messages, setMessages] = useState<Message[]>(() =>
+    isRefinement
+      ? [{ role: 'assistant', content: `Your workflow "${currentWorkflow!.name}" is loaded. What changes would you like to make?` }]
+      : [],
+  );
+  const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    textareaRef.current?.focus();
-
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
+    inputRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  const handleSubmit = async () => {
-    const trimmed = description.trim();
-    if (!trimmed) return;
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
+  const handleSend = async () => {
+    const trimmed = input.trim();
+    if (!trimmed || isLoading) return;
+
+    const userMsg: Message = { role: 'user', content: trimmed };
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
+    setInput('');
     setIsLoading(true);
     setError('');
 
     try {
-      const res = await fetch('http://localhost:8000/api/workflows/generate', {
+      const res = await fetch('http://localhost:8000/api/workflows/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ description: trimmed }),
+        body: JSON.stringify({
+          messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
+          current_workflow: currentWorkflow ?? null,
+        }),
       });
 
-      const data = await res.json() as { workflow?: Workflow; detail?: string };
+      const data = await res.json() as {
+        status?: string;
+        reply?: string;
+        workflow?: Workflow;
+        detail?: string;
+      };
 
       if (!res.ok) {
         setError(data.detail ?? `Server error (${res.status})`);
         return;
       }
 
-      if (!data.workflow) {
-        setError('Server returned an unexpected response.');
-        return;
-      }
-
-      onGenerated(data.workflow);
-      onClose();
+      const assistantMsg: Message = {
+        role: 'assistant',
+        content: data.reply ?? '',
+        readyWorkflow: data.status === 'ready' && data.workflow ? data.workflow : undefined,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
     } catch {
       setError('Could not reach backend. Is it running on port 8000?');
     } finally {
@@ -59,56 +85,82 @@ export function GenerateModal({ onClose, onGenerated }: Props) {
   };
 
   const handleKey = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSubmit();
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
   };
 
   return (
     <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
+      <div className="modal chat-modal">
         <div className="modal-header">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span className="modal-title">Generate Workflow</span>
-            <HelpIcon
-              title="Generate with AI"
-              body="Describe what you want your workflow to do in plain English. The AI generates a structured workflow graph from your description — you can then edit it freely on the canvas.\n\nRequires LLM_API_KEY in the backend .env file.\n\nTip: be specific about node types — e.g. 'classify with an LLM, search the knowledge base with RAG, then route complex cases to a human reviewer'."
-            />
-          </div>
+          <span className="modal-title">
+            {isRefinement ? 'Refine Workflow' : 'Generate Workflow'}
+          </span>
           <button className="modal-close" onClick={onClose}>✕</button>
         </div>
 
-        <div className="modal-body">
-          <label className="modal-label">
-            Describe your workflow
-          </label>
-          <textarea
-            ref={textareaRef}
-            className="modal-textarea"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onKeyDown={handleKey}
-            placeholder="e.g. Create a customer support agent that classifies requests, searches the knowledge base, and routes complex cases to a human reviewer."
-            rows={5}
-            disabled={isLoading}
-          />
-          <div className="modal-hint">Ctrl+Enter to generate</div>
+        <div className="chat-messages">
+          {messages.length === 0 && (
+            <div className="chat-empty">
+              Describe your workflow and I'll help you build it.
+              <span className="chat-empty-hint">Press Enter to send · Shift+Enter for new line</span>
+            </div>
+          )}
 
-          {error && <div className="modal-error">{error}</div>}
+          {messages.map((msg, i) => (
+            <div key={i} className={`chat-msg chat-msg--${msg.role}`}>
+              <div className="chat-bubble">{msg.content}</div>
+              {msg.readyWorkflow && (
+                <div className="chat-ready-card">
+                  <div className="chat-ready-meta">
+                    <span className="chat-ready-name">{msg.readyWorkflow.name}</span>
+                    <span className="chat-ready-count">{msg.readyWorkflow.nodes.length} nodes</span>
+                  </div>
+                  <button
+                    className="btn btn-primary"
+                    onClick={() => { onGenerated(msg.readyWorkflow!); onClose(); }}
+                  >
+                    Load to Canvas
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {isLoading && (
+            <div className="chat-msg chat-msg--assistant">
+              <div className="chat-bubble chat-bubble--typing">
+                <span className="chat-dot" />
+                <span className="chat-dot" />
+                <span className="chat-dot" />
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
         </div>
 
-        <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose} disabled={isLoading}>
-            Cancel
-          </button>
+        {error && <div className="modal-error chat-error">{error}</div>}
+
+        <div className="chat-input-row">
+          <textarea
+            ref={inputRef}
+            className="chat-input"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKey}
+            placeholder={isRefinement ? 'What changes would you like?' : 'Describe your workflow…'}
+            rows={2}
+            disabled={isLoading}
+          />
           <button
-            className="btn btn-primary"
-            onClick={handleSubmit}
-            disabled={isLoading || !description.trim()}
+            className="btn btn-primary chat-send-btn"
+            onClick={handleSend}
+            disabled={isLoading || !input.trim()}
           >
-            {isLoading ? (
-              <><span className="spinner" /> Generating…</>
-            ) : (
-              'Generate'
-            )}
+            Send
           </button>
         </div>
       </div>
