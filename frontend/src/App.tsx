@@ -14,6 +14,7 @@ import { SimulateModal } from './features/workflow/SimulateModal';
 import { TracePanel } from './features/workflow/TracePanel';
 import { WorkflowJsonEditor } from './features/workflow/WorkflowJsonEditor';
 import { ReportModal } from './features/workflow/ReportModal';
+import { SaveModal } from './features/workflow/SaveModal';
 import { ExamplePickerModal } from './features/workflow/ExamplePickerModal';
 import {
   createDefaultWorkflow,
@@ -58,6 +59,7 @@ export default function App() {
   const [showGenerateModal, setShowGenerateModal] = useState(false);
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [showExamplePicker, setShowExamplePicker] = useState(false);
   const [isDark, setIsDark] = useState(() => localStorage.getItem('aiflow-theme') !== 'light');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -121,17 +123,19 @@ export default function App() {
     }
   }, [flash, reset]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(() => setShowSaveModal(true), []);
+
+  const handleSaveConfirm = useCallback((filename: string) => {
     const wf = workflowRef.current;
     const json = serializeWorkflow(wf);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${wf.name.replace(/\s+/g, '-').toLowerCase()}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
-    flash('Workflow saved.');
+    flash(`Saved as ${filename}`);
   }, [flash]);
 
   const handleOpen = useCallback(() => fileInputRef.current?.click(), []);
@@ -424,6 +428,14 @@ export default function App() {
         <ReportModal
           workflow={workflow}
           onClose={() => setShowReportModal(false)}
+        />
+      )}
+
+      {showSaveModal && (
+        <SaveModal
+          defaultName={workflow.name}
+          onSave={handleSaveConfirm}
+          onClose={() => setShowSaveModal(false)}
         />
       )}
 
