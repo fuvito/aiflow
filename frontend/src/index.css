@@ -274,6 +274,24 @@ body {
   box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.35) !important;
 }
 
+/* Disabled control panel buttons */
+.react-flow__controls-button:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* Node drag feedback — lift and enlarge the node while it's being moved */
+.react-flow__node.dragging {
+  cursor: grabbing !important;
+  z-index: 1000;
+}
+.react-flow__node.dragging > div {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.65) !important;
+  transform: scale(1.05);
+  transition: none !important;
+  cursor: grabbing !important;
+}
+
 /* Live connection line drawn while dragging */
 .react-flow__connection-path {
   stroke: var(--accent) !important;

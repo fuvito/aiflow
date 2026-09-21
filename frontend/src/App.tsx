@@ -25,6 +25,7 @@ import {
   updateNodeName,
   updateNodeConfig,
   updateEdge,
+  autoLayoutWorkflow,
 } from './features/workflow/WorkflowAdapter';
 import './index.css';
 
@@ -222,6 +223,13 @@ export default function App() {
     flash(`Loaded: ${loaded.name}`);
   }, [flash, reset, confirmDiscard]);
 
+  const [autoLayoutRevision, setAutoLayoutRevision] = useState(0);
+
+  const handleAutoLayout = useCallback(() => {
+    setWorkflow((wf) => autoLayoutWorkflow(wf));
+    setAutoLayoutRevision((r) => r + 1);
+  }, [setWorkflow]);
+
   const handleGenerate = useCallback(() => setShowGenerateModal(true), []);
   const [showRefineModal, setShowRefineModal] = useState(false);
   const handleRefine = useCallback(() => setShowRefineModal(true), []);
@@ -385,6 +393,8 @@ export default function App() {
             onSelectNode={setSelectedNodeId}
             onSelectEdge={setSelectedEdgeId}
             nodeStatuses={simulationTrace ? nodeStatuses : undefined}
+            autoLayoutRevision={autoLayoutRevision}
+            onAutoLayout={handleAutoLayout}
           />
           {validationResult && (
             <ValidationPanel

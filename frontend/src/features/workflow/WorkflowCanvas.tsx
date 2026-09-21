@@ -1,8 +1,9 @@
-import { useCallback, useMemo, memo, useEffect } from 'react';
+import { useCallback, useMemo, memo, useEffect, useState } from 'react';
 import {
   ReactFlow,
   Background,
   Controls,
+  ControlButton,
   MiniMap,
   ReactFlowProvider,
   useReactFlow,
@@ -45,10 +46,13 @@ interface Props {
   onSelectNode: (nodeId: string | null) => void;
   onSelectEdge: (edgeId: string | null) => void;
   nodeStatuses?: Record<string, string>;
+  autoLayoutRevision?: number;
+  onAutoLayout?: () => void;
 }
 
-const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, onWorkflowChange, onSelectNode, onSelectEdge, nodeStatuses }: Props) {
-  const { screenToFlowPosition, addNodes, setCenter, getZoom, getNode } = useReactFlow();
+const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, onWorkflowChange, onSelectNode, onSelectEdge, nodeStatuses, autoLayoutRevision, onAutoLayout }: Props) {
+  const { screenToFlowPosition, addNodes, setCenter, getZoom, getNode, fitView } = useReactFlow();
+  const [isInteractive, setIsInteractive] = useState(true);
 
   const { nodes: rfNodes, edges: rfEdges } = useMemo(
     () => workflowToReactFlow(workflow),
@@ -68,6 +72,12 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
     () => rfEdges.map((e) => ({ ...e, selected: e.id === selectedEdgeId })),
     [rfEdges, selectedEdgeId],
   );
+
+  useEffect(() => {
+    if (!autoLayoutRevision) return;
+    const id = requestAnimationFrame(() => fitView({ duration: 350 }));
+    return () => cancelAnimationFrame(id);
+  }, [autoLayoutRevision, fitView]);
 
   // Pan canvas to the currently-running node so it stays in view during simulation.
   useEffect(() => {
@@ -174,11 +184,45 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
         onEdgeClick={onEdgeClick}
         onPaneClick={() => { onSelectNode(null); onSelectEdge(null); }}
         deleteKeyCode="Delete"
+        nodesDraggable={isInteractive}
+        nodesConnectable={isInteractive}
+        elementsSelectable={isInteractive}
         fitView
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={20} />
-        <Controls />
+        <Controls showInteractive={false}>
+          <ControlButton
+            onClick={onAutoLayout}
+            title="Auto-arrange nodes in a top-to-bottom layout"
+            disabled={!isInteractive}
+          >
+            <svg viewBox="0 0 16 16" width="12" height="12" fill="currentColor">
+              <rect x="5" y="0" width="6" height="4" rx="1" />
+              <rect x="0" y="12" width="6" height="4" rx="1" />
+              <rect x="10" y="12" width="6" height="4" rx="1" />
+              <line x1="8" y1="4" x2="3" y2="12" stroke="currentColor" strokeWidth="1.5" />
+              <line x1="8" y1="4" x2="13" y2="12" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          </ControlButton>
+          <ControlButton
+            onClick={() => setIsInteractive((v) => !v)}
+            title={isInteractive ? 'Lock canvas (disable editing)' : 'Unlock canvas (enable editing)'}
+            style={!isInteractive ? { background: 'var(--accent)', color: '#fff' } : undefined}
+          >
+            {isInteractive ? (
+              <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
+                <rect x="3" y="7" width="10" height="8" rx="1" />
+                <path d="M5 7V5a3 3 0 0 1 6 0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            ) : (
+              <svg viewBox="0 0 16 16" width="11" height="11" fill="currentColor">
+                <rect x="3" y="7" width="10" height="8" rx="1" />
+                <path d="M5 7V5a3 3 0 0 1 6 0v2" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+            )}
+          </ControlButton>
+        </Controls>
         <MiniMap />
       </ReactFlow>
     </div>
@@ -192,5 +236,6 @@ export function WorkflowCanvas(props: Props) {
     </ReactFlowProvider>
   );
 }
+
 
 
