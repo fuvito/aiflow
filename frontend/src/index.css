@@ -274,6 +274,39 @@ body {
   box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.35) !important;
 }
 
+/* Edge delete button and condition label */
+.edge-delete-btn {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  color: var(--text-2);
+  cursor: pointer;
+  font-size: 10px;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  padding: 0;
+}
+.edge-delete-btn:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: #fff;
+}
+.edge-condition-label {
+  display: block;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-2);
+  font-size: 10px;
+  padding: 1px 5px;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+
 /* Disabled control panel buttons */
 .react-flow__controls-button:disabled {
   opacity: 0.35;

@@ -34,10 +34,12 @@ import {
 import type { WorkflowRFNode } from './WorkflowAdapter';
 import { WorkflowNodeComponent } from './nodes/WorkflowNodeComponent';
 import { getNodeDefinition } from './nodes/nodeDefinitions';
+import { DeletableEdge } from './edges/DeletableEdge';
 
-// Cast needed: our data-typed component is assignable to RF's generic NodeProps
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const nodeTypes = { workflowNode: WorkflowNodeComponent as any };
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const edgeTypes = { deletable: DeletableEdge as any };
 
 interface Props {
   workflow: Workflow;
@@ -55,9 +57,13 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
   const { screenToFlowPosition, addNodes, setCenter, getZoom, getNode, fitView } = useReactFlow();
   const [isInteractive, setIsInteractive] = useState(true);
 
-  const { nodes: rfNodes, edges: rfEdges } = useMemo(
+  const { nodes: rfNodes, edges: rfEdgesRaw } = useMemo(
     () => workflowToReactFlow(workflow),
     [workflow],
+  );
+  const rfEdges = useMemo(
+    () => rfEdgesRaw.map((e) => ({ ...e, type: 'deletable' })),
+    [rfEdgesRaw],
   );
 
   const rfNodesWithSelection = useMemo(
@@ -137,7 +143,7 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
 
   const onConnect: OnConnect = useCallback(
     (connection: Connection) => {
-      const updated = addEdge({ ...connection, type: 'smoothstep' }, rfEdges) as RFEdge[];
+      const updated = addEdge({ ...connection, type: 'deletable' }, rfEdges) as RFEdge[];
       onWorkflowChange(applyEdges(workflow, updated));
     },
     [workflow, rfEdges, onWorkflowChange],
@@ -176,6 +182,7 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
         nodes={rfNodesWithSelection}
         edges={rfEdgesWithSelection}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
