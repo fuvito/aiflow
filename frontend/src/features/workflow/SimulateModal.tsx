@@ -37,11 +37,22 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  const handleClose = () => {
+    try {
+      const parsed = JSON.parse(inputJson);
+      if (typeof parsed === 'object' && !Array.isArray(parsed)) {
+        onSampleInputSave?.(parsed as Record<string, unknown>);
+      }
+    } catch {}
+    onClose();
+  };
+
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') handleClose(); };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inputJson, onClose]);
 
   const set = <K extends keyof SimulationSettings>(key: K, value: SimulationSettings[K]) =>
     setSettings((s) => ({ ...s, [key]: value }));
@@ -93,9 +104,8 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
         return;
       }
 
-      onSampleInputSave?.(parsed);
       onSimulated(data.trace, data.evaluation ?? null, settings);
-      onClose();
+      handleClose();
     } catch {
       setError('Could not reach backend. Is it running on port 8000?');
     } finally {
@@ -104,7 +114,7 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
   };
 
   return (
-    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && handleClose()}>
       <div className="modal sim-modal">
         <div className="modal-header">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -114,7 +124,7 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
               body="Runs a mock execution of your workflow. The backend traverses the graph from START to END, calling each node's handler in order.\n\nThe execution trace appears in the panel at the bottom of the screen. Expand any step to inspect its exact input and output JSON."
             />
           </div>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={handleClose}>✕</button>
         </div>
 
         <div className="modal-body">
@@ -247,7 +257,7 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
         </div>
 
         <div className="modal-footer">
-          <button className="btn btn-ghost" onClick={onClose} disabled={isLoading}>Cancel</button>
+          <button className="btn btn-ghost" onClick={handleClose} disabled={isLoading}>Cancel</button>
           <button
             className="btn btn-primary"
             onClick={handleSubmit}
