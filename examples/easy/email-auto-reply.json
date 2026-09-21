@@ -37,6 +37,9 @@
   "metadata": {
     "difficulty": "easy",
     "industry": "Customer Service",
-    "tags": ["email", "llm", "auto-reply"]
+    "tags": ["email", "llm", "auto-reply"],
+    "sample_input": {
+      "input": "Hi, I've been trying to reset my password for 3 days and nothing is working. Please help!"
+    }
   }
 }

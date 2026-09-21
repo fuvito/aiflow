@@ -70,6 +70,7 @@
       "name": "Create Purchase Orders",
       "position": { "x": 200, "y": 1040 },
       "config": {
+        "query": "INSERT INTO purchase_orders (warehouse_id, items, priority, authorised_by, created_at) VALUES (:warehouse_id, :items, :priority, :authorised_by, :created_at)",
         "operation": "insert",
         "table": "purchase_orders",
         "fields": ["warehouse_id", "items", "priority", "authorised_by", "created_at"]
@@ -99,6 +100,7 @@
       "name": "Log Reorder Recommendation",
       "position": { "x": 600, "y": 880 },
       "config": {
+        "query": "INSERT INTO reorder_recommendations (warehouse_id, recommendations, generated_at, status) VALUES (:warehouse_id, :recommendations, :generated_at, :status)",
         "operation": "insert",
         "table": "reorder_recommendations",
         "fields": ["warehouse_id", "recommendations", "generated_at", "status"]
@@ -127,6 +129,9 @@
   "metadata": {
     "difficulty": "complex",
     "industry": "Supply Chain / Logistics",
-    "tags": ["supply-chain", "api", "hitl", "database", "tool", "routing"]
+    "tags": ["supply-chain", "api", "hitl", "database", "tool", "routing"],
+    "sample_input": {
+      "warehouse_id": "WH-EAST-01"
+    }
   }
 }

@@ -77,6 +77,9 @@
   "metadata": {
     "difficulty": "medium",
     "industry": "Social Media / Platform",
-    "tags": ["content-moderation", "rag", "hitl", "routing"]
+    "tags": ["content-moderation", "rag", "hitl", "routing"],
+    "sample_input": {
+      "content": "Click here to claim your FREE iPhone! Limited time offer — act now before it expires!!!"
+    }
   }
 }

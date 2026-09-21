@@ -94,6 +94,10 @@
   "metadata": {
     "difficulty": "medium",
     "industry": "Customer Service",
-    "tags": ["customer-support", "rag", "hitl", "routing"]
+    "tags": ["customer-support", "rag", "hitl", "routing"],
+    "sample_input": {
+      "customerId": "cust_789",
+      "message": "I was charged twice for my subscription this month. Can you help?"
+    }
   }
 }

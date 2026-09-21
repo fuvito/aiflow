@@ -55,6 +55,9 @@
   "metadata": {
     "difficulty": "easy",
     "industry": "Marketing",
-    "tags": ["sentiment", "classification", "routing"]
+    "tags": ["sentiment", "classification", "routing"],
+    "sample_input": {
+      "input": "I absolutely love your product! The support team resolved my issue in minutes."
+    }
   }
 }

@@ -146,6 +146,10 @@
   "metadata": {
     "difficulty": "complex",
     "industry": "E-commerce / CRM",
-    "tags": ["personalisation", "rag", "hitl", "multi-branch", "api"]
+    "tags": ["personalisation", "rag", "hitl", "multi-branch", "api"],
+    "sample_input": {
+      "customer_id": "cust_001",
+      "request": "I'd like to upgrade my subscription plan to access premium features."
+    }
   }
 }

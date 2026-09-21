@@ -137,6 +137,9 @@
   "metadata": {
     "difficulty": "complex",
     "industry": "Research & Analytics",
-    "tags": ["research", "rag", "tool", "hitl", "synthesis"]
+    "tags": ["research", "rag", "tool", "hitl", "synthesis"],
+    "sample_input": {
+      "topic": "Impact of large language models on software development productivity"
+    }
   }
 }

@@ -63,6 +63,7 @@
       "name": "Log Onboarding Record",
       "position": { "x": 350, "y": 880 },
       "config": {
+        "query": "INSERT INTO onboarding_records (employee_id, start_date, plan, manager_approved, accounts_provisioned) VALUES (:employee_id, :start_date, :plan, :manager_approved, :accounts_provisioned)",
         "operation": "insert",
         "table": "onboarding_records",
         "fields": ["employee_id", "start_date", "plan", "manager_approved", "accounts_provisioned"]
@@ -87,6 +88,9 @@
   "metadata": {
     "difficulty": "medium",
     "industry": "Human Resources",
-    "tags": ["hr", "onboarding", "hitl", "database"]
+    "tags": ["hr", "onboarding", "hitl", "database"],
+    "sample_input": {
+      "employee_id": "emp_456"
+    }
   }
 }

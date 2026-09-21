@@ -60,6 +60,7 @@
       "name": "Record in ERP",
       "position": { "x": 400, "y": 880 },
       "config": {
+        "query": "INSERT INTO invoices (vendor, amount_usd, due_date, status, approved_by) VALUES (:vendor, :amount_usd, :due_date, :status, :approved_by)",
         "operation": "insert",
         "table": "invoices",
         "fields": ["vendor", "amount_usd", "due_date", "status", "approved_by"]
@@ -85,6 +86,9 @@
   "metadata": {
     "difficulty": "medium",
     "industry": "Finance / Operations",
-    "tags": ["invoice", "approval", "database", "hitl"]
+    "tags": ["invoice", "approval", "database", "hitl"],
+    "sample_input": {
+      "invoice_id": "INV-2024-0042"
+    }
   }
 }

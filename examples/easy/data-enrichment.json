@@ -52,6 +52,9 @@
   "metadata": {
     "difficulty": "easy",
     "industry": "Sales / CRM",
-    "tags": ["api", "transform", "enrichment"]
+    "tags": ["api", "transform", "enrichment"],
+    "sample_input": {
+      "domain": "acme.com"
+    }
   }
 }
