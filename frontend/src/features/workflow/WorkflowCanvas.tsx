@@ -30,7 +30,9 @@ import {
   applyEdges,
   addNode,
   removeNode,
+  alignNodes,
 } from './WorkflowAdapter';
+import type { AlignmentType } from './WorkflowAdapter';
 import type { WorkflowRFNode } from './WorkflowAdapter';
 import { WorkflowNodeComponent } from './nodes/WorkflowNodeComponent';
 import { getNodeDefinition } from './nodes/nodeDefinitions';
@@ -59,6 +61,14 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
   const { screenToFlowPosition, addNodes, setCenter, getZoom, getNode, fitView } = useReactFlow();
   const [isInteractive, setIsInteractive] = useState(true);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(
+    () => new Set(selectedNodeId ? [selectedNodeId] : []),
+  );
+
+  // Sync single-select from parent (e.g. after undo/new) into local set
+  useEffect(() => {
+    setSelectedIds(new Set(selectedNodeId ? [selectedNodeId] : []));
+  }, [selectedNodeId]);
 
   const { nodes: rfNodes, edges: rfEdgesRaw } = useMemo(
     () => workflowToReactFlow(workflow),
@@ -72,10 +82,10 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
   const rfNodesWithSelection = useMemo(
     () => rfNodes.map((n) => ({
       ...n,
-      selected: n.id === selectedNodeId,
+      selected: selectedIds.has(n.id),
       data: { ...n.data, executionStatus: nodeStatuses?.[n.id] },
     })),
-    [rfNodes, selectedNodeId, nodeStatuses],
+    [rfNodes, selectedIds, nodeStatuses],
   );
 
   const rfEdgesWithSelection = useMemo(
@@ -115,23 +125,41 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
 
   const onNodesChange: OnNodesChange = useCallback(
     (changes) => {
+      // Removals
       const removals = changes.filter((c) => c.type === 'remove');
       if (removals.length > 0) {
         let wf = workflow;
         for (const r of removals) {
-          if ('id' in r) wf = removeNode(wf, r.id);
-          if ('id' in r && r.id === selectedNodeId) onSelectNode(null);
+          if ('id' in r) {
+            wf = removeNode(wf, r.id);
+            if (r.id === selectedNodeId) onSelectNode(null);
+            setSelectedIds((prev) => { const s = new Set(prev); s.delete(r.id); return s; });
+          }
         }
         onWorkflowChange(wf);
         return;
       }
-      // Only sync final position (drag end) back to domain model.
-      // Skipping mid-drag events (dragging: true) prevents ~60 state updates/sec
-      // that cause full App re-renders while dragging.
+      // Position (drag end only)
       const positionChanges = changes.filter((c) => c.type === 'position' && !c.dragging);
-      if (positionChanges.length === 0) return;
-      const updated = applyNodeChanges(positionChanges, rfNodes) as WorkflowRFNode[];
-      onWorkflowChange(applyNodePositions(workflow, updated as RFNode[]));
+      if (positionChanges.length > 0) {
+        const updated = applyNodeChanges(positionChanges, rfNodes) as WorkflowRFNode[];
+        onWorkflowChange(applyNodePositions(workflow, updated as RFNode[]));
+      }
+      // Selection changes from lasso / shift-click
+      const selectChanges = changes.filter((c) => c.type === 'select');
+      if (selectChanges.length > 0) {
+        setSelectedIds((prev) => {
+          const next = new Set(prev);
+          for (const c of selectChanges) {
+            const sc = c as { type: 'select'; id: string; selected: boolean };
+            if (sc.selected) next.add(sc.id);
+            else next.delete(sc.id);
+          }
+          if (next.size === 1) onSelectNode([...next][0]);
+          else if (next.size === 0) onSelectNode(null);
+          return next;
+        });
+      }
     },
     [workflow, rfNodes, selectedNodeId, onWorkflowChange, onSelectNode],
   );
@@ -225,9 +253,9 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
         onConnect={onConnect}
         onDrop={onDrop}
         onDragOver={onDragOver}
-        onNodeClick={(_, node) => { onSelectNode(node.id); onSelectEdge(null); setContextMenu(null); }}
+        onNodeClick={(_, node) => { setSelectedIds(new Set([node.id])); onSelectNode(node.id); onSelectEdge(null); setContextMenu(null); }}
         onEdgeClick={onEdgeClick}
-        onPaneClick={() => { onSelectNode(null); onSelectEdge(null); setContextMenu(null); }}
+        onPaneClick={() => { setSelectedIds(new Set()); onSelectNode(null); onSelectEdge(null); setContextMenu(null); }}
         onNodeContextMenu={(e, node) => {
           e.preventDefault();
           setContextMenu({ type: 'node', screenX: e.clientX, screenY: e.clientY, nodeId: node.id });
@@ -284,6 +312,37 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
           nodeStrokeWidth={3}
         />
       </ReactFlow>
+      {selectedIds.size >= 2 && (
+        <div className="alignment-toolbar">
+          {([
+            ['left',     '⬑', 'Align left'],
+            ['center-h', '⬔', 'Align center (horizontal)'],
+            ['right',    '⬒', 'Align right'],
+            ['top',      '⬘', 'Align top'],
+            ['center-v', '⬕', 'Align middle (vertical)'],
+            ['bottom',   '⬙', 'Align bottom'],
+          ] as [AlignmentType, string, string][]).map(([type, icon, title]) => (
+            <button
+              key={type}
+              className="alignment-btn"
+              title={title}
+              onClick={() => {
+                const dims = new Map(
+                  [...selectedIds].map((id) => {
+                    const n = getNode(id);
+                    return [id, { width: n?.measured?.width ?? n?.width ?? 160, height: n?.measured?.height ?? n?.height ?? 60 }];
+                  }),
+                );
+                onWorkflowChange(alignNodes(workflow, [...selectedIds], type, dims));
+              }}
+            >
+              {icon}
+            </button>
+          ))}
+          <span className="alignment-count">{selectedIds.size} selected</span>
+        </div>
+      )}
+
       {contextMenu && (
         <CanvasContextMenu
           menu={contextMenu}

@@ -274,6 +274,41 @@ body {
   box-shadow: 0 0 0 4px rgba(124, 58, 237, 0.35) !important;
 }
 
+/* Multi-select alignment toolbar */
+.alignment-toolbar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px;
+  pointer-events: all;
+}
+.alignment-btn {
+  background: none;
+  border: none;
+  border-radius: 5px;
+  color: var(--text-1);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 6px;
+}
+.alignment-btn:hover { background: var(--bg-raised); }
+.alignment-count {
+  color: var(--text-3);
+  font-size: 11px;
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
 /* Canvas right-click context menu */
 .ctx-menu {
   background: var(--bg-surface);

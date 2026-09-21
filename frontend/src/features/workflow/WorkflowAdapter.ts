@@ -183,6 +183,48 @@ export function autoLayoutWorkflow(workflow: Workflow): Workflow {
   };
 }
 
+export type AlignmentType = 'left' | 'center-h' | 'right' | 'top' | 'center-v' | 'bottom';
+
+export function alignNodes(
+  workflow: Workflow,
+  nodeIds: string[],
+  alignment: AlignmentType,
+  dimensions: Map<string, { width: number; height: number }>,
+): Workflow {
+  const selected = workflow.nodes.filter((n) => nodeIds.includes(n.id));
+  if (selected.length < 2) return workflow;
+
+  const w = (id: string) => dimensions.get(id)?.width ?? 160;
+  const h = (id: string) => dimensions.get(id)?.height ?? 60;
+
+  const updates = new Map<string, { x: number; y: number }>();
+
+  if (alignment === 'left') {
+    const minX = Math.min(...selected.map((n) => n.position.x));
+    selected.forEach((n) => updates.set(n.id, { ...n.position, x: minX }));
+  } else if (alignment === 'right') {
+    const maxX = Math.max(...selected.map((n) => n.position.x + w(n.id)));
+    selected.forEach((n) => updates.set(n.id, { ...n.position, x: maxX - w(n.id) }));
+  } else if (alignment === 'center-h') {
+    const avg = selected.reduce((s, n) => s + n.position.x + w(n.id) / 2, 0) / selected.length;
+    selected.forEach((n) => updates.set(n.id, { ...n.position, x: avg - w(n.id) / 2 }));
+  } else if (alignment === 'top') {
+    const minY = Math.min(...selected.map((n) => n.position.y));
+    selected.forEach((n) => updates.set(n.id, { ...n.position, y: minY }));
+  } else if (alignment === 'bottom') {
+    const maxY = Math.max(...selected.map((n) => n.position.y + h(n.id)));
+    selected.forEach((n) => updates.set(n.id, { ...n.position, y: maxY - h(n.id) }));
+  } else if (alignment === 'center-v') {
+    const avg = selected.reduce((s, n) => s + n.position.y + h(n.id) / 2, 0) / selected.length;
+    selected.forEach((n) => updates.set(n.id, { ...n.position, y: avg - h(n.id) / 2 }));
+  }
+
+  return {
+    ...workflow,
+    nodes: workflow.nodes.map((n) => (updates.has(n.id) ? { ...n, position: updates.get(n.id)! } : n)),
+  };
+}
+
 export function updateNodeConfig(
   workflow: Workflow,
   nodeId: string,
