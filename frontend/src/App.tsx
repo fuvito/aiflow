@@ -96,30 +96,6 @@ export default function App() {
   }, [undo, redo]);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const ctrl = e.ctrlKey || e.metaKey;
-      if (!ctrl) return;
-      const inText = document.activeElement instanceof HTMLInputElement ||
-                     document.activeElement instanceof HTMLTextAreaElement;
-      if (e.key === 'c' && !inText) {
-        const node = workflowRef.current.nodes.find((n) => n.id === selectedNodeId);
-        if (node) { clipboardRef.current = node; flash('Node copied'); }
-      }
-      if (e.key === 'v' && !inText && clipboardRef.current) {
-        e.preventDefault();
-        const src = clipboardRef.current;
-        const newId = `${src.type.toLowerCase()}-${crypto.randomUUID().slice(0, 8)}`;
-        const newNode: WorkflowNode = { ...src, id: newId, position: { x: src.position.x + 40, y: src.position.y + 40 } };
-        setWorkflow((wf) => ({ ...wf, nodes: [...wf.nodes, newNode] }));
-        setSelectedNodeId(newId);
-        flash('Node pasted');
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [selectedNodeId, flash, setWorkflow]);
-
-  useEffect(() => {
     if (isFirstWorkflowRender.current) { isFirstWorkflowRender.current = false; return; }
     if (cleanLoadRef.current) { cleanLoadRef.current = false; setIsDirty(false); return; }
     setIsDirty(true);
@@ -149,6 +125,30 @@ export default function App() {
   }, []);
 
   const showError = useCallback((msg: string) => setErrorMessage(msg), []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const ctrl = e.ctrlKey || e.metaKey;
+      if (!ctrl) return;
+      const inText = document.activeElement instanceof HTMLInputElement ||
+                     document.activeElement instanceof HTMLTextAreaElement;
+      if (e.key === 'c' && !inText) {
+        const node = workflowRef.current.nodes.find((n) => n.id === selectedNodeId);
+        if (node) { clipboardRef.current = node; flash('Node copied'); }
+      }
+      if (e.key === 'v' && !inText && clipboardRef.current) {
+        e.preventDefault();
+        const src = clipboardRef.current;
+        const newId = `${src.type.toLowerCase()}-${crypto.randomUUID().slice(0, 8)}`;
+        const newNode: WorkflowNode = { ...src, id: newId, position: { x: src.position.x + 40, y: src.position.y + 40 } };
+        setWorkflow((wf) => ({ ...wf, nodes: [...wf.nodes, newNode] }));
+        setSelectedNodeId(newId);
+        flash('Node pasted');
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [selectedNodeId, flash, setWorkflow]);
 
   // ── Simulation state (declared early so handlers below can reference setters) ──
   const [showSimulateModal, setShowSimulateModal] = useState(false);
