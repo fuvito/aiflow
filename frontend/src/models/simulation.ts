@@ -31,7 +31,7 @@ export interface SimulationEvaluation {
 }
 
 export interface SimulationSettings {
-  llm_mode: 'mock';
+  llm_mode: 'mock' | 'real';
   hitl_mode: 'auto-approve' | 'pause';
   condition_mode: 'user-pick' | 'expression' | 'random';
   display_mode: 'animated' | 'instant' | 'manual';

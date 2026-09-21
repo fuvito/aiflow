@@ -8,6 +8,7 @@ from app.models.workflow import Workflow
 
 class LLMMode(str, Enum):
     MOCK = "mock"
+    REAL = "real"
 
 
 class HITLMode(str, Enum):

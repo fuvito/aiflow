@@ -1,11 +1,13 @@
-"""Mock node handlers for workflow simulation.
+"""Node handlers for workflow simulation.
 
 Each handler receives the node, its input data, and simulation settings,
 and returns a dict representing the node's output.
 
-Real LLM calls are not implemented here — the llm_mode='real' branch is
-stubbed with NotImplementedError so it can be wired in without restructuring.
+LLM nodes support two modes controlled by settings.llm_mode:
+  mock — instant deterministic output, no API call
+  real — calls the configured LLM provider (requires LLM_API_KEY)
 """
+import json as _json
 import random as _random
 from typing import Any
 
@@ -13,15 +15,16 @@ from app.models.workflow import NodeType, WorkflowNode
 from app.schemas.simulation import SimulationSettings, LLMMode
 
 
-def dispatch(
+async def dispatch(
     node: WorkflowNode,
     input_data: dict[str, Any],
     settings: SimulationSettings,
 ) -> dict[str, Any]:
+    if node.type == NodeType.LLM:
+        return await _handle_llm(node, input_data, settings)
     handlers = {
         NodeType.START: _handle_start,
         NodeType.END: _handle_end,
-        NodeType.LLM: _handle_llm,
         NodeType.TOOL: _handle_tool,
         NodeType.API: _handle_api,
         NodeType.DATABASE: _handle_database,
@@ -48,20 +51,26 @@ def _handle_end(
     return {"result": input_data}
 
 
-def _handle_llm(
+async def _handle_llm(
     node: WorkflowNode, input_data: dict[str, Any], settings: SimulationSettings
 ) -> dict[str, Any]:
-    if settings.llm_mode == LLMMode.MOCK:
-        prompt = node.config.get("prompt", "")
-        return {
-            "result": f"Mock LLM output for prompt: {prompt[:80]}",
-            "_mock": True,
-            "node_id": node.id,
-            "node_name": node.name,
-        }
-    # Future: call LLMProvider.generate(prompt, structured_output_schema)
-    # Provider is already implemented in providers/openai_provider.py
-    raise NotImplementedError("Real LLM simulation is not yet enabled")
+    prompt = node.config.get("prompt", "You are a helpful AI assistant.")
+    if settings.llm_mode == LLMMode.REAL:
+        from app.providers.factory import get_provider
+        provider = get_provider()
+        user_msg = (
+            "Input data:\n"
+            + _json.dumps(input_data, indent=2, default=str)
+            + "\n\nProcess the input according to your role and respond with a JSON object."
+        )
+        result = await provider.complete_json(prompt, user_msg)
+        return {"result": result, "node_id": node.id, "node_name": node.name}
+    return {
+        "result": f"Mock LLM output for prompt: {prompt[:80]}",
+        "_mock": True,
+        "node_id": node.id,
+        "node_name": node.name,
+    }
 
 
 def _handle_tool(

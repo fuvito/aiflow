@@ -33,10 +33,10 @@ export function EvaluationPanel({ evaluation }: Props) {
     <div className="eval-panel">
       <div className="eval-header">
         <span className="eval-title">
-          LLM Evaluation
+          Design Review
           <HelpIcon
-            title="LLM Evaluation"
-            body="An LLM-generated quality assessment of your workflow design.\n\nThe score (1–10) reflects overall quality: ≥7 is good (green), 4–6 needs improvement (amber), ≤3 has significant issues (red).\n\nEnable via the 'Evaluate results' toggle in the Simulate modal."
+            title="Workflow Design Review"
+            body="An AI-generated quality assessment of your workflow design.\n\nThe score (1–10) reflects overall quality: ≥7 is good (green), 4–6 needs improvement (amber), ≤3 has significant issues (red).\n\nEnable via the 'Evaluate results' toggle in the Simulate modal."
           />
         </span>
         <span className="eval-score" style={{ background: color }}>

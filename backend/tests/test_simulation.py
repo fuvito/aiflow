@@ -84,39 +84,44 @@ def _default_settings(**overrides) -> SimulationSettings:
 
 # ── Unit tests: simulate() ───────────────────────────────────────────────────
 
-def test_minimal_workflow_produces_complete_trace():
-    trace = simulate(_minimal(), {}, _default_settings())
+@pytest.mark.asyncio
+async def test_minimal_workflow_produces_complete_trace():
+    trace = await simulate(_minimal(), {}, _default_settings())
     assert trace.status == "complete"
     assert len(trace.steps) == 2
     node_ids = [s.node_id for s in trace.steps]
     assert node_ids == ["s", "e"]
 
 
-def test_all_steps_succeed():
-    trace = simulate(_minimal(), {}, _default_settings())
+@pytest.mark.asyncio
+async def test_all_steps_succeed():
+    trace = await simulate(_minimal(), {}, _default_settings())
     for step in trace.steps:
         assert step.status == "success"
 
 
-def test_trace_has_workflow_metadata():
+@pytest.mark.asyncio
+async def test_trace_has_workflow_metadata():
     wf = _minimal()
-    trace = simulate(wf, {}, _default_settings())
+    trace = await simulate(wf, {}, _default_settings())
     assert trace.workflow_id == wf.id
     assert trace.workflow_name == wf.name
     assert trace.started_at
     assert trace.completed_at
 
 
-def test_linear_workflow_visits_all_nodes():
-    trace = simulate(_linear(), {"user": "hello"}, _default_settings())
+@pytest.mark.asyncio
+async def test_linear_workflow_visits_all_nodes():
+    trace = await simulate(_linear(), {"user": "hello"}, _default_settings())
     assert trace.status == "complete"
     assert len(trace.steps) == 3
     types = [s.node_type for s in trace.steps]
     assert types == ["START", "LLM", "END"]
 
 
-def test_llm_mock_handler_output_shape():
-    trace = simulate(_linear(), {}, _default_settings())
+@pytest.mark.asyncio
+async def test_llm_mock_handler_output_shape():
+    trace = await simulate(_linear(), {}, _default_settings())
     llm_step = next(s for s in trace.steps if s.node_type == "LLM")
     assert llm_step.output is not None
     assert llm_step.output["_mock"] is True
@@ -124,23 +129,26 @@ def test_llm_mock_handler_output_shape():
     assert "Say hello" in llm_step.output["result"]
 
 
-def test_start_node_passes_input_through():
-    trace = simulate(_minimal(), {"key": "val"}, _default_settings())
+@pytest.mark.asyncio
+async def test_start_node_passes_input_through():
+    trace = await simulate(_minimal(), {"key": "val"}, _default_settings())
     start_step = trace.steps[0]
     assert start_step.node_type == "START"
     assert start_step.output == {"key": "val"}
 
 
-def test_end_node_wraps_input():
-    trace = simulate(_minimal(), {"key": "val"}, _default_settings())
+@pytest.mark.asyncio
+async def test_end_node_wraps_input():
+    trace = await simulate(_minimal(), {"key": "val"}, _default_settings())
     end_step = trace.steps[-1]
     assert end_step.node_type == "END"
     assert "result" in end_step.output
 
 
-def test_condition_expression_fallback_follows_all_edges():
+@pytest.mark.asyncio
+async def test_condition_expression_fallback_follows_all_edges():
     # Expression can't eval against mock data → all edges followed
-    trace = simulate(_branching(), {}, _default_settings(condition_mode=ConditionMode.EXPRESSION))
+    trace = await simulate(_branching(), {}, _default_settings(condition_mode=ConditionMode.EXPRESSION))
     assert trace.status == "complete"
     visited = {s.node_id for s in trace.steps}
     # Both end nodes reachable
@@ -148,47 +156,53 @@ def test_condition_expression_fallback_follows_all_edges():
     assert "eb" in visited
 
 
-def test_condition_random_mode_follows_exactly_one_edge():
-    trace = simulate(_branching(), {}, _default_settings(condition_mode=ConditionMode.RANDOM))
+@pytest.mark.asyncio
+async def test_condition_random_mode_follows_exactly_one_edge():
+    trace = await simulate(_branching(), {}, _default_settings(condition_mode=ConditionMode.RANDOM))
     assert trace.status == "complete"
     end_steps = [s for s in trace.steps if s.node_type == "END"]
     assert len(end_steps) == 1
 
 
-def test_condition_user_pick_follows_first_edge():
-    trace = simulate(_branching(), {}, _default_settings(condition_mode=ConditionMode.USER_PICK))
+@pytest.mark.asyncio
+async def test_condition_user_pick_follows_first_edge():
+    trace = await simulate(_branching(), {}, _default_settings(condition_mode=ConditionMode.USER_PICK))
     assert trace.status == "complete"
     end_steps = [s for s in trace.steps if s.node_type == "END"]
     assert len(end_steps) == 1
     assert end_steps[0].node_id == "ea"
 
 
-def test_cycle_detection_raises():
+@pytest.mark.asyncio
+async def test_cycle_detection_raises():
     with pytest.raises(SimulationError, match="cycle"):
-        simulate(_with_cycle(), {}, _default_settings())
+        await simulate(_with_cycle(), {}, _default_settings())
 
 
-def test_missing_start_raises():
+@pytest.mark.asyncio
+async def test_missing_start_raises():
     wf = Workflow(
         name="NoStart",
         nodes=[WorkflowNode(id="e", type=NodeType.END, name="End")],
         edges=[],
     )
     with pytest.raises(SimulationError, match="START"):
-        simulate(wf, {}, _default_settings())
+        await simulate(wf, {}, _default_settings())
 
 
-def test_missing_end_raises():
+@pytest.mark.asyncio
+async def test_missing_end_raises():
     wf = Workflow(
         name="NoEnd",
         nodes=[WorkflowNode(id="s", type=NodeType.START, name="Start")],
         edges=[],
     )
     with pytest.raises(SimulationError, match="END"):
-        simulate(wf, {}, _default_settings())
+        await simulate(wf, {}, _default_settings())
 
 
-def test_bad_edge_reference_raises():
+@pytest.mark.asyncio
+async def test_bad_edge_reference_raises():
     wf = Workflow(
         name="BadEdge",
         nodes=[
@@ -198,10 +212,11 @@ def test_bad_edge_reference_raises():
         edges=[WorkflowEdge(source="s", target="nonexistent")],
     )
     with pytest.raises(SimulationError, match="unknown"):
-        simulate(wf, {}, _default_settings())
+        await simulate(wf, {}, _default_settings())
 
 
-def test_hitl_auto_approve_does_not_block():
+@pytest.mark.asyncio
+async def test_hitl_auto_approve_does_not_block():
     wf = Workflow(
         name="HITL",
         nodes=[
@@ -215,13 +230,14 @@ def test_hitl_auto_approve_does_not_block():
             WorkflowEdge(source="h", target="e"),
         ],
     )
-    trace = simulate(wf, {}, _default_settings())
+    trace = await simulate(wf, {}, _default_settings())
     assert trace.status == "complete"
     hitl_step = next(s for s in trace.steps if s.node_type == "HITL")
     assert hitl_step.output["approved"] is True
 
 
-def test_all_node_types_produce_mock_output():
+@pytest.mark.asyncio
+async def test_all_node_types_produce_mock_output():
     """Every node type handler must return a dict (not raise)."""
     node_configs = {
         NodeType.START: {},
@@ -239,7 +255,7 @@ def test_all_node_types_produce_mock_output():
     settings = _default_settings()
     for node_type, config in node_configs.items():
         node = WorkflowNode(id="n", type=node_type, name="N", config=config)
-        result = dispatch(node, {}, settings)
+        result = await dispatch(node, {}, settings)
         assert isinstance(result, dict), f"Handler for {node_type} did not return dict"
 
 
@@ -350,99 +366,112 @@ def _pause_settings() -> SimulationSettings:
     return SimulationSettings(hitl_mode=HITLMode.PAUSE)
 
 
-def test_hitl_pause_returns_paused_status():
-    trace = simulate(_hitl_workflow(), {}, _pause_settings())
+@pytest.mark.asyncio
+async def test_hitl_pause_returns_paused_status():
+    trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     assert trace.status == "paused"
 
 
-def test_hitl_pause_step_has_waiting_status():
-    trace = simulate(_hitl_workflow(), {}, _pause_settings())
+@pytest.mark.asyncio
+async def test_hitl_pause_step_has_waiting_status():
+    trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     hitl_step = next(s for s in trace.steps if s.node_type == "HITL")
     assert hitl_step.status.value == "waiting"
     assert hitl_step.output is None  # decision not yet made
 
 
-def test_hitl_pause_trace_stored():
+@pytest.mark.asyncio
+async def test_hitl_pause_trace_stored():
     _paused_store.clear()
-    trace = simulate(_hitl_workflow(), {}, _pause_settings())
+    trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     assert trace.trace_id in _paused_store
 
 
-def test_hitl_pause_end_node_not_yet_executed():
-    trace = simulate(_hitl_workflow(), {}, _pause_settings())
+@pytest.mark.asyncio
+async def test_hitl_pause_end_node_not_yet_executed():
+    trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     executed_types = [s.node_type for s in trace.steps]
     assert "END" not in executed_types
 
 
-def test_hitl_resume_approve_completes_trace():
+@pytest.mark.asyncio
+async def test_hitl_resume_approve_completes_trace():
     _paused_store.clear()
-    paused_trace = simulate(_hitl_workflow(), {}, _pause_settings())
+    paused_trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     hitl_step = next(s for s in paused_trace.steps if s.node_type == "HITL")
-    completed = resume_simulation(paused_trace.trace_id, hitl_step.node_id, "approve")
+    completed = await resume_simulation(paused_trace.trace_id, hitl_step.node_id, "approve")
     assert completed.status == "complete"
 
 
-def test_hitl_resume_reject_completes_trace():
+@pytest.mark.asyncio
+async def test_hitl_resume_reject_completes_trace():
     _paused_store.clear()
-    paused_trace = simulate(_hitl_workflow(), {}, _pause_settings())
+    paused_trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     hitl_step = next(s for s in paused_trace.steps if s.node_type == "HITL")
-    completed = resume_simulation(paused_trace.trace_id, hitl_step.node_id, "reject")
+    completed = await resume_simulation(paused_trace.trace_id, hitl_step.node_id, "reject")
     assert completed.status == "complete"
 
 
-def test_hitl_resume_approve_sets_approved_true():
+@pytest.mark.asyncio
+async def test_hitl_resume_approve_sets_approved_true():
     _paused_store.clear()
-    paused_trace = simulate(_hitl_workflow(), {}, _pause_settings())
+    paused_trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     hitl_step = next(s for s in paused_trace.steps if s.node_type == "HITL")
-    completed = resume_simulation(paused_trace.trace_id, hitl_step.node_id, "approve")
+    completed = await resume_simulation(paused_trace.trace_id, hitl_step.node_id, "approve")
     resolved_hitl = next(s for s in completed.steps if s.node_type == "HITL")
     assert resolved_hitl.output["approved"] is True
     assert resolved_hitl.output["decision"] == "approve"
 
 
-def test_hitl_resume_reject_sets_approved_false():
+@pytest.mark.asyncio
+async def test_hitl_resume_reject_sets_approved_false():
     _paused_store.clear()
-    paused_trace = simulate(_hitl_workflow(), {}, _pause_settings())
+    paused_trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     hitl_step = next(s for s in paused_trace.steps if s.node_type == "HITL")
-    completed = resume_simulation(paused_trace.trace_id, hitl_step.node_id, "reject")
+    completed = await resume_simulation(paused_trace.trace_id, hitl_step.node_id, "reject")
     resolved_hitl = next(s for s in completed.steps if s.node_type == "HITL")
     assert resolved_hitl.output["approved"] is False
     assert resolved_hitl.output["decision"] == "reject"
 
 
-def test_hitl_resume_executes_all_remaining_nodes():
+@pytest.mark.asyncio
+async def test_hitl_resume_executes_all_remaining_nodes():
     _paused_store.clear()
-    paused_trace = simulate(_hitl_workflow(), {}, _pause_settings())
+    paused_trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     hitl_step = next(s for s in paused_trace.steps if s.node_type == "HITL")
-    completed = resume_simulation(paused_trace.trace_id, hitl_step.node_id, "approve")
+    completed = await resume_simulation(paused_trace.trace_id, hitl_step.node_id, "approve")
     node_types = [s.node_type for s in completed.steps]
     assert node_types == ["START", "HITL", "END"]
 
 
-def test_hitl_resume_removed_from_store_after_resume():
+@pytest.mark.asyncio
+async def test_hitl_resume_removed_from_store_after_resume():
     _paused_store.clear()
-    paused_trace = simulate(_hitl_workflow(), {}, _pause_settings())
+    paused_trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     trace_id = paused_trace.trace_id
     hitl_step = next(s for s in paused_trace.steps if s.node_type == "HITL")
-    resume_simulation(trace_id, hitl_step.node_id, "approve")
+    await resume_simulation(trace_id, hitl_step.node_id, "approve")
     assert trace_id not in _paused_store
 
 
-def test_hitl_resume_unknown_trace_id_raises():
+@pytest.mark.asyncio
+async def test_hitl_resume_unknown_trace_id_raises():
     with pytest.raises(SimulationError, match="No paused simulation"):
-        resume_simulation("nonexistent-id", "h", "approve")
+        await resume_simulation("nonexistent-id", "h", "approve")
 
 
-def test_hitl_resume_wrong_node_id_raises():
+@pytest.mark.asyncio
+async def test_hitl_resume_wrong_node_id_raises():
     _paused_store.clear()
-    paused_trace = simulate(_hitl_workflow(), {}, _pause_settings())
+    paused_trace = await simulate(_hitl_workflow(), {}, _pause_settings())
     with pytest.raises(SimulationError, match="not the paused HITL node"):
-        resume_simulation(paused_trace.trace_id, "wrong-node", "approve")
+        await resume_simulation(paused_trace.trace_id, "wrong-node", "approve")
 
 
-def test_hitl_auto_approve_still_works_unaffected():
+@pytest.mark.asyncio
+async def test_hitl_auto_approve_still_works_unaffected():
     """Ensure auto-approve path from Task 21 still passes after refactor."""
-    trace = simulate(_hitl_workflow(), {}, _default_settings())
+    trace = await simulate(_hitl_workflow(), {}, _default_settings())
     assert trace.status == "complete"
     hitl_step = next(s for s in trace.steps if s.node_type == "HITL")
     assert hitl_step.output["approved"] is True
@@ -535,8 +564,9 @@ async def test_api_resume_unknown_trace_returns_404():
 
 # ── Unit tests: mock_evaluate ────────────────────────────────────────────────
 
-def test_mock_evaluate_returns_evaluation_model():
-    trace = simulate(_minimal(), {}, _default_settings())
+@pytest.mark.asyncio
+async def test_mock_evaluate_returns_evaluation_model():
+    trace = await simulate(_minimal(), {}, _default_settings())
     result = mock_evaluate(_minimal(), trace)
     assert result.score >= 1
     assert result.score <= 10
@@ -546,19 +576,22 @@ def test_mock_evaluate_returns_evaluation_model():
     assert isinstance(result.recommendations, list)
 
 
-def test_mock_evaluate_score_in_range():
-    trace = simulate(_linear(), {}, _default_settings())
+@pytest.mark.asyncio
+async def test_mock_evaluate_score_in_range():
+    trace = await simulate(_linear(), {}, _default_settings())
     result = mock_evaluate(_linear(), trace)
     assert 1 <= result.score <= 10
 
 
-def test_mock_evaluate_mentions_workflow_name():
-    trace = simulate(_minimal(), {}, _default_settings())
+@pytest.mark.asyncio
+async def test_mock_evaluate_mentions_workflow_name():
+    trace = await simulate(_minimal(), {}, _default_settings())
     result = mock_evaluate(_minimal(), trace)
     assert _minimal().name in result.summary
 
 
-def test_mock_evaluate_hitl_in_strengths_when_present():
+@pytest.mark.asyncio
+async def test_mock_evaluate_hitl_in_strengths_when_present():
     wf = Workflow(
         name="HITL Wf",
         nodes=[
@@ -569,20 +602,22 @@ def test_mock_evaluate_hitl_in_strengths_when_present():
         ],
         edges=[WorkflowEdge(source="s", target="h"), WorkflowEdge(source="h", target="e")],
     )
-    trace = simulate(wf, {}, _default_settings())
+    trace = await simulate(wf, {}, _default_settings())
     result = mock_evaluate(wf, trace)
     assert any("human" in s.lower() or "hitl" in s.lower() for s in result.strengths)
 
 
-def test_mock_evaluate_condition_in_strengths_when_present():
-    trace = simulate(_branching(), {}, _default_settings())
+@pytest.mark.asyncio
+async def test_mock_evaluate_condition_in_strengths_when_present():
+    trace = await simulate(_branching(), {}, _default_settings())
     result = mock_evaluate(_branching(), trace)
     assert any("condition" in s.lower() or "branch" in s.lower() for s in result.strengths)
 
 
-def test_mock_evaluate_no_error_handling_flagged_in_issues():
+@pytest.mark.asyncio
+async def test_mock_evaluate_no_error_handling_flagged_in_issues():
     # _minimal() has no CONDITION node
-    trace = simulate(_minimal(), {}, _default_settings())
+    trace = await simulate(_minimal(), {}, _default_settings())
     result = mock_evaluate(_minimal(), trace)
     all_text = " ".join(result.issues).lower()
     assert "error" in all_text or "condition" in all_text or "handling" in all_text
@@ -618,7 +653,7 @@ async def test_llm_evaluate_parses_provider_response():
         "issues": ["No error handling"],
         "recommendations": ["Add CONDITION nodes"],
     })
-    trace = simulate(_linear(), {}, _default_settings())
+    trace = await simulate(_linear(), {}, _default_settings())
     result = await llm_evaluate(_linear(), trace, provider)
     assert result.score == 8
     assert result.summary == "Good workflow."
@@ -630,14 +665,14 @@ async def test_llm_evaluate_parses_provider_response():
 @pytest.mark.asyncio
 async def test_llm_evaluate_clamps_score_to_range():
     provider = _MockLLMProvider({"score": 99, "summary": "x", "strengths": [], "issues": [], "recommendations": []})
-    trace = simulate(_minimal(), {}, _default_settings())
+    trace = await simulate(_minimal(), {}, _default_settings())
     result = await llm_evaluate(_minimal(), trace, provider)
     assert result.score == 10
 
 
 @pytest.mark.asyncio
 async def test_llm_evaluate_raises_on_provider_failure():
-    trace = simulate(_minimal(), {}, _default_settings())
+    trace = await simulate(_minimal(), {}, _default_settings())
     with pytest.raises(EvaluationError, match="LLM evaluation call failed"):
         await llm_evaluate(_minimal(), trace, _FailingLLMProvider())
 
@@ -654,7 +689,7 @@ async def test_llm_evaluate_prompt_contains_workflow_name():
             captured.append(user)
             return {"score": 5, "summary": "ok", "strengths": [], "issues": [], "recommendations": []}
 
-    trace = simulate(_linear(), {}, _default_settings())
+    trace = await simulate(_linear(), {}, _default_settings())
     await llm_evaluate(_linear(), trace, _CapturingProvider())
     assert _linear().name in captured[0]
 

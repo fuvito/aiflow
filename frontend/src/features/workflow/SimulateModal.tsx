@@ -161,6 +161,25 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
           <div className="sim-settings-grid">
             <div className="sim-setting">
               <label className="prop-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                LLM nodes
+                <HelpIcon
+                  title="LLM Node Mode"
+                  body={"Mock: instant deterministic output, no API call — great for testing workflow structure.\n\nReal: each LLM node makes an actual call to your configured provider (LLM_API_KEY). The node's prompt field becomes the system message; the current workflow data is the user message."}
+                />
+              </label>
+              <select
+                className="prop-input prop-select"
+                value={settings.llm_mode}
+                onChange={(e) => set('llm_mode', e.target.value as SimulationSettings['llm_mode'])}
+                disabled={isLoading}
+              >
+                <option value="mock">Mock (instant)</option>
+                <option value="real">Real (uses LLM_API_KEY)</option>
+              </select>
+            </div>
+
+            <div className="sim-setting">
+              <label className="prop-label" style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                 HITL nodes
                 <HelpIcon
                   title="HITL Mode"

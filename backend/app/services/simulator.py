@@ -51,7 +51,7 @@ _paused_store: dict[str, _PausedState] = {}
 
 # ── Public entry points ───────────────────────────────────────────────────────
 
-def simulate(
+async def simulate(
     workflow: Workflow,
     input_data: dict[str, Any],
     settings: SimulationSettings,
@@ -73,7 +73,7 @@ def simulate(
     )
 
     queue: deque[tuple[str, dict[str, Any]]] = deque([(start_node.id, input_data)])
-    return _run_bfs(trace, workflow, settings, node_by_id, edges_from, queue, set())
+    return await _run_bfs(trace, workflow, settings, node_by_id, edges_from, queue, set())
 
 
 def get_paused_settings(trace_id: str) -> tuple[Workflow, SimulationSettings] | None:
@@ -84,7 +84,7 @@ def get_paused_settings(trace_id: str) -> tuple[Workflow, SimulationSettings] | 
     return paused.workflow, paused.settings
 
 
-def resume_simulation(trace_id: str, node_id: str, decision: str) -> ExecutionTrace:
+async def resume_simulation(trace_id: str, node_id: str, decision: str) -> ExecutionTrace:
     paused = _paused_store.get(trace_id)
     if not paused:
         raise SimulationError(f"No paused simulation found with trace_id '{trace_id}'.")
@@ -126,7 +126,7 @@ def resume_simulation(trace_id: str, node_id: str, decision: str) -> ExecutionTr
     )
 
     paused.trace.status = "running"
-    return _run_bfs(
+    return await _run_bfs(
         paused.trace,
         paused.workflow,
         paused.settings,
@@ -139,7 +139,7 @@ def resume_simulation(trace_id: str, node_id: str, decision: str) -> ExecutionTr
 
 # ── Core BFS loop ─────────────────────────────────────────────────────────────
 
-def _run_bfs(
+async def _run_bfs(
     trace: ExecutionTrace,
     workflow: Workflow,
     settings: SimulationSettings,
@@ -181,7 +181,7 @@ def _run_bfs(
             return trace
 
         try:
-            output = node_handlers.dispatch(node, data, settings)
+            output = await node_handlers.dispatch(node, data, settings)
             step = NodeExecution(
                 node_id=node.id,
                 node_name=node.name,

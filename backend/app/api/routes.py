@@ -68,7 +68,7 @@ async def chat_workflow(request: WorkflowChatRequest):
 @router.post("/workflows/simulate", response_model=SimulateWorkflowResponse)
 async def simulate_workflow(request: SimulateWorkflowRequest):
     try:
-        trace = simulate(request.workflow, request.input, request.settings)
+        trace = await simulate(request.workflow, request.input, request.settings)
     except SimulationError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
@@ -93,7 +93,7 @@ async def resume_simulation_endpoint(request: ResumeSimulationRequest):
     paused_info = get_paused_settings(request.trace_id)
 
     try:
-        trace = resume_simulation(request.trace_id, request.node_id, request.decision)
+        trace = await resume_simulation(request.trace_id, request.node_id, request.decision)
     except SimulationError as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 
