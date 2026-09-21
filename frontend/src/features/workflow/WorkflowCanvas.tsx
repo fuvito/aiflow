@@ -32,8 +32,7 @@ import {
   removeNode,
   alignNodes,
 } from './WorkflowAdapter';
-import type { AlignmentType } from './WorkflowAdapter';
-import type { WorkflowRFNode } from './WorkflowAdapter';
+import type { AlignmentType, RFNodeData, WorkflowRFNode } from './WorkflowAdapter';
 import { WorkflowNodeComponent } from './nodes/WorkflowNodeComponent';
 import { getNodeDefinition } from './nodes/nodeDefinitions';
 import { DeletableEdge } from './edges/DeletableEdge';
@@ -44,6 +43,8 @@ import type { ContextMenuState } from './CanvasContextMenu';
 const nodeTypes = { workflowNode: WorkflowNodeComponent as any };
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const edgeTypes = { deletable: DeletableEdge as any };
+const DEFAULT_EDGE_OPTIONS = { type: 'deletable' as const };
+const LARGE_GRAPH_THRESHOLD = 40;
 
 interface Props {
   workflow: Workflow;
@@ -62,6 +63,7 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
   const { screenToFlowPosition, addNodes, setCenter, getZoom, getNode, fitView } = useReactFlow();
   const [isInteractive, setIsInteractive] = useState(true);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const [hiddenNodeIds, setHiddenNodeIds] = useState<Set<string>>(new Set());
   const [selectedIds, setSelectedIds] = useState<Set<string>>(
     () => new Set(selectedNodeId ? [selectedNodeId] : []),
   );
@@ -71,22 +73,19 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
     setSelectedIds(new Set(selectedNodeId ? [selectedNodeId] : []));
   }, [selectedNodeId]);
 
-  const { nodes: rfNodes, edges: rfEdgesRaw } = useMemo(
+  const { nodes: rfNodes, edges: rfEdges } = useMemo(
     () => workflowToReactFlow(workflow),
     [workflow],
-  );
-  const rfEdges = useMemo(
-    () => rfEdgesRaw.map((e) => ({ ...e, type: 'deletable' })),
-    [rfEdgesRaw],
   );
 
   const rfNodesWithSelection = useMemo(
     () => rfNodes.map((n) => ({
       ...n,
       selected: selectedIds.has(n.id),
+      hidden: hiddenNodeIds.has(n.id),
       data: { ...n.data, executionStatus: nodeStatuses?.[n.id] },
     })),
-    [rfNodes, selectedIds, nodeStatuses],
+    [rfNodes, selectedIds, nodeStatuses, hiddenNodeIds],
   );
 
   const rfEdgesWithSelection = useMemo(
@@ -125,6 +124,33 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
       { duration: 400, zoom: getZoom() },
     );
   }, [nodeStatuses, getNode, setCenter, getZoom]);
+
+  const onMoveEnd = useCallback(
+    (_: MouseEvent | TouchEvent | null, { x, y, zoom }: { x: number; y: number; zoom: number }) => {
+      if (rfNodes.length < LARGE_GRAPH_THRESHOLD) {
+        setHiddenNodeIds((prev) => prev.size > 0 ? new Set() : prev);
+        return;
+      }
+      const vpW = window.innerWidth;
+      const vpH = window.innerHeight;
+      const PAD = 1500;
+      const left = -x / zoom - PAD;
+      const top = -y / zoom - PAD;
+      const right = (-x + vpW) / zoom + PAD;
+      const bottom = (-y + vpH) / zoom + PAD;
+      const next = new Set<string>();
+      for (const node of rfNodes) {
+        const nw = (node.measured?.width ?? node.width ?? 160) as number;
+        const nh = (node.measured?.height ?? node.height ?? 60) as number;
+        if (node.position.x + nw < left || node.position.x > right
+         || node.position.y + nh < top || node.position.y > bottom) {
+          next.add(node.id);
+        }
+      }
+      setHiddenNodeIds(next);
+    },
+    [rfNodes],
+  );
 
   const onEdgeClick: OnEdgeClick = useCallback(
     (_, edge) => {
@@ -276,6 +302,8 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
           const pos = screenToFlowPosition({ x: (e as React.MouseEvent).clientX, y: (e as React.MouseEvent).clientY });
           setContextMenu({ type: 'pane', screenX: (e as React.MouseEvent).clientX, screenY: (e as React.MouseEvent).clientY, flowPosition: pos });
         }}
+        defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
+        onMoveEnd={onMoveEnd}
         deleteKeyCode="Delete"
         snapToGrid
         snapGrid={[20, 20]}

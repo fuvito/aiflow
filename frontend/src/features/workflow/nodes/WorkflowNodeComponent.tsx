@@ -33,7 +33,7 @@ export const WorkflowNodeComponent = memo(function WorkflowNodeComponent({ data,
         userSelect: 'none',
         fontFamily: 'monospace',
         opacity: data.executionStatus === 'pending' ? 0.4 : 1,
-        transition: 'opacity 0.3s, box-shadow 0.3s',
+        transition: 'opacity 0.3s',
       }}
     >
       {!isStart && (

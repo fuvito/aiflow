@@ -31,7 +31,6 @@ export function workflowToReactFlow(workflow: Workflow): {
     source: e.source,
     target: e.target,
     label: e.condition ?? undefined,
-    type: 'smoothstep',
     data: { notes: e.notes ?? '' },
   }));
 
