@@ -376,7 +376,7 @@ export default function App() {
     // so the canvas auto-scroll (which watches for 'running') stays in sync.
     const isAnimating = simulationSettings.display_mode === 'animated'
       && currentSimStep > 0
-      && currentSimStep <= simulationTrace.steps.length;
+      && currentSimStep < simulationTrace.steps.length;
     if (isAnimating) {
       const latest = simulationTrace.steps[currentSimStep - 1];
       if (latest) result[latest.node_id] = 'running';
