@@ -33,6 +33,7 @@ import {
 } from './WorkflowAdapter';
 import type { WorkflowRFNode } from './WorkflowAdapter';
 import { WorkflowNodeComponent } from './nodes/WorkflowNodeComponent';
+import { getNodeDefinition } from './nodes/nodeDefinitions';
 
 // Cast needed: our data-typed component is assignable to RF's generic NodeProps
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -225,7 +226,10 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
             )}
           </ControlButton>
         </Controls>
-        <MiniMap />
+        <MiniMap
+          nodeColor={(node) => getNodeDefinition((node.data as RFNodeData).nodeType)?.color ?? '#888'}
+          nodeStrokeWidth={3}
+        />
       </ReactFlow>
     </div>
   );
