@@ -68,6 +68,10 @@ export default function App() {
   const workflowRef = useRef(workflow);
   useLayoutEffect(() => { workflowRef.current = workflow; });
 
+  const [isDirty, setIsDirty] = useState(false);
+  const isFirstWorkflowRender = useRef(true);
+  const cleanLoadRef = useRef(false);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
@@ -88,6 +92,24 @@ export default function App() {
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [undo, redo]);
+
+  useEffect(() => {
+    if (isFirstWorkflowRender.current) { isFirstWorkflowRender.current = false; return; }
+    if (cleanLoadRef.current) { cleanLoadRef.current = false; setIsDirty(false); return; }
+    setIsDirty(true);
+  }, [workflow]);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const confirmDiscard = useCallback(() => {
+    if (!isDirty) return true;
+    return confirm('You have unsaved changes. Discard and continue?');
+  }, [isDirty]);
 
   const toggleTheme = useCallback(() => setIsDark(d => {
     const next = !d;
@@ -110,18 +132,18 @@ export default function App() {
   const [currentSimStep, setCurrentSimStep] = useState(0);
 
   const handleNew = useCallback(() => {
-    if (confirm('Discard current workflow and start a new one?')) {
-      reset(createDefaultWorkflow());
-      setSelectedNodeId(null);
-      setSelectedEdgeId(null);
-      setValidationState(null);
-      setSimulationTrace(null);
-      setSimulationEvaluation(null);
-      setSimulationSettings(null);
-      setCurrentSimStep(0);
-      flash('New workflow created.');
-    }
-  }, [flash, reset]);
+    if (!confirmDiscard()) return;
+    cleanLoadRef.current = true;
+    reset(createDefaultWorkflow());
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    setValidationState(null);
+    setSimulationTrace(null);
+    setSimulationEvaluation(null);
+    setSimulationSettings(null);
+    setCurrentSimStep(0);
+    flash('New workflow created.');
+  }, [flash, reset, confirmDiscard]);
 
   const handleSave = useCallback(() => setShowSaveModal(true), []);
 
@@ -135,6 +157,7 @@ export default function App() {
     a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    setIsDirty(false);
     flash(`Saved as ${filename}`);
   }, [flash]);
 
@@ -143,10 +166,12 @@ export default function App() {
   const handleFileLoad = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!confirmDiscard()) { e.target.value = ''; return; }
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
         const loaded = deserializeWorkflow(evt.target?.result as string);
+        cleanLoadRef.current = true;
         reset(loaded);
         setSelectedNodeId(null);
         setSelectedEdgeId(null);
@@ -162,7 +187,7 @@ export default function App() {
     };
     reader.readAsText(file);
     e.target.value = '';
-  }, [flash, reset, showError]);
+  }, [flash, reset, showError, confirmDiscard]);
 
   const handleValidate = useCallback(async () => {
     setIsValidating(true);
@@ -184,6 +209,8 @@ export default function App() {
   const handleOpenExamplePicker = useCallback(() => setShowExamplePicker(true), []);
 
   const handleExampleSelected = useCallback((loaded: Workflow) => {
+    if (!confirmDiscard()) return;
+    cleanLoadRef.current = true;
     reset(loaded);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
@@ -193,7 +220,7 @@ export default function App() {
     setSimulationSettings(null);
     setCurrentSimStep(0);
     flash(`Loaded: ${loaded.name}`);
-  }, [flash, reset]);
+  }, [flash, reset, confirmDiscard]);
 
   const handleGenerate = useCallback(() => setShowGenerateModal(true), []);
   const [showRefineModal, setShowRefineModal] = useState(false);
@@ -211,6 +238,7 @@ export default function App() {
   }, [flash, setWorkflow]);
 
   const handleGenerated = useCallback((generated: Workflow) => {
+    cleanLoadRef.current = true;
     setWorkflow(generated);
     setSelectedNodeId(null);
     setSelectedEdgeId(null);
