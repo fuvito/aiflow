@@ -157,6 +157,39 @@ export default function App() {
   const [simulationSettings, setSimulationSettings] = useState<SimulationSettings | null>(null);
   const [currentSimStep, setCurrentSimStep] = useState(0);
 
+  // ── Right panel state ────────────────────────────────────────────────
+  const [rightPanelWidth, setRightPanelWidth] = useState(264);
+  const [rightPanelView, setRightPanelView] = useState<'properties' | 'simulation'>('properties');
+  const panelDragRef = useRef<{ startX: number; startWidth: number } | null>(null);
+
+  useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      if (!panelDragRef.current) return;
+      const delta = panelDragRef.current.startX - e.clientX;
+      setRightPanelWidth(Math.max(200, Math.min(560, panelDragRef.current.startWidth + delta)));
+    };
+    const onUp = () => {
+      if (panelDragRef.current) {
+        panelDragRef.current = null;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      }
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  const handlePanelResizeStart = useCallback((e: React.MouseEvent) => {
+    panelDragRef.current = { startX: e.clientX, startWidth: rightPanelWidth };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    e.preventDefault();
+  }, [rightPanelWidth]);
+
   const handleNew = useCallback(() => {
     if (!confirmDiscard()) return;
     cleanLoadRef.current = true;
@@ -168,6 +201,7 @@ export default function App() {
     setSimulationEvaluation(null);
     setSimulationSettings(null);
     setCurrentSimStep(0);
+    setRightPanelView('properties');
     flash('New workflow created.');
   }, [flash, reset, confirmDiscard]);
 
@@ -206,6 +240,7 @@ export default function App() {
         setSimulationEvaluation(null);
         setSimulationSettings(null);
         setCurrentSimStep(0);
+        setRightPanelView('properties');
         flash(`Loaded: ${loaded.name}`);
       } catch (err) {
         showError(`Failed to load file: ${(err as Error).message}`);
@@ -245,6 +280,7 @@ export default function App() {
     setSimulationEvaluation(null);
     setSimulationSettings(null);
     setCurrentSimStep(0);
+    setRightPanelView('properties');
     flash(`Loaded: ${loaded.name}`);
   }, [flash, reset, confirmDiscard]);
 
@@ -313,6 +349,7 @@ export default function App() {
     setSimulationEvaluation(evaluation);
     setSimulationSettings(settings);
     setCurrentSimStep(settings.display_mode === 'instant' ? trace.steps.length : 0);
+    setRightPanelView('simulation');
   }, []);
 
   const handleRerun = useCallback(async () => {
@@ -363,6 +400,7 @@ export default function App() {
     setSimulationEvaluation(null);
     setSimulationSettings(null);
     setCurrentSimStep(0);
+    setRightPanelView('properties');
   }, []);
 
   // Animated playback: advance one step at a time
@@ -466,27 +504,49 @@ export default function App() {
           )}
         </div>
 
-        {simulationTrace && simulationSettings ? (
-          <TracePanel
-            trace={simulationTrace}
-            evaluation={simulationEvaluation}
-            settings={simulationSettings}
-            visibleStepCount={visibleSimStep}
-            onAdvanceStep={() => setCurrentSimStep((s) => Math.min(s + 1, simulationTrace.steps.length))}
-            onResume={handleResume}
-            onRerun={handleRerun}
-            onClear={handleClearTrace}
-          />
-        ) : (
-          <PropertiesPanel
-            workflow={workflow}
-            selectedNodeId={selectedNodeId}
-            selectedEdgeId={selectedEdgeId}
-            onNameChange={handleNodeNameChange}
-            onConfigChange={handleConfigChange}
-            onEdgeChange={handleEdgeChange}
-          />
-        )}
+        <div className="right-panel-container" style={{ width: rightPanelWidth }}>
+          <div className="right-panel-handle" onMouseDown={handlePanelResizeStart} />
+          <div className="right-panel-inner">
+            {simulationTrace && simulationSettings && (
+              <div className="right-panel-tabs">
+                <button
+                  className={`right-panel-tab${rightPanelView === 'properties' ? ' right-panel-tab--active' : ''}`}
+                  onClick={() => setRightPanelView('properties')}
+                >
+                  Properties
+                </button>
+                <button
+                  className={`right-panel-tab${rightPanelView === 'simulation' ? ' right-panel-tab--active' : ''}`}
+                  onClick={() => setRightPanelView('simulation')}
+                >
+                  Simulation
+                </button>
+              </div>
+            )}
+            {(rightPanelView === 'properties' || !simulationTrace) && (
+              <PropertiesPanel
+                workflow={workflow}
+                selectedNodeId={selectedNodeId}
+                selectedEdgeId={selectedEdgeId}
+                onNameChange={handleNodeNameChange}
+                onConfigChange={handleConfigChange}
+                onEdgeChange={handleEdgeChange}
+              />
+            )}
+            {simulationTrace && simulationSettings && rightPanelView === 'simulation' && (
+              <TracePanel
+                trace={simulationTrace}
+                evaluation={simulationEvaluation}
+                settings={simulationSettings}
+                visibleStepCount={visibleSimStep}
+                onAdvanceStep={() => setCurrentSimStep((s) => Math.min(s + 1, simulationTrace.steps.length))}
+                onResume={handleResume}
+                onRerun={handleRerun}
+                onClear={handleClearTrace}
+              />
+            )}
+          </div>
+        </div>
       </div>
 
       {statusMessage && <div className="status-bar">{statusMessage}</div>}
