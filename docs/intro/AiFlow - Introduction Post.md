@@ -27,6 +27,8 @@ The AI generates a complete workflow — nodes, edges, configuration — and ren
   Ideal viewport: full app window, dark theme, modal taking the left ~40%.
   File name suggestion: 01-generate.png
 ─────────────────────────────────────────────────────────────────────────────-->
+![Generate Workflow - 1](./01-Generate.png)
+![Generate Workflow - 2](./01-Generate-2.png)
 
 ---
 
@@ -47,6 +49,7 @@ A few quality-of-life features that made a difference:
   Show the mini-map in the bottom-right corner. Dark theme.
   File name suggestion: 02-canvas-properties.png
 ─────────────────────────────────────────────────────────────────────────────-->
+![Canvas Properties](./02-canvas-properties.png)
 
 ---
 
@@ -64,7 +67,8 @@ The backend traverses the graph and each node lights up on the canvas as it exec
   with status dots. Dark theme.
   File name suggestion: 03-simulation.png
 ─────────────────────────────────────────────────────────────────────────────-->
-
+![Simulate - 1](./03-simulation.png)
+![Simulate - 2](./03-simulation-2.png)
 ---
 
 ## Evaluate
@@ -78,7 +82,7 @@ After the run completes, an optional **Design Review** scores the workflow desig
   visible in the background with completed (green) nodes. Dark theme.
   File name suggestion: 04-design-review.png
 ─────────────────────────────────────────────────────────────────────────────-->
-
+![Evaluate](./04-design-review.png)
 ---
 
 ## What's under the hood
