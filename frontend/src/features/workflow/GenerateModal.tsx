@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Workflow } from '../../models/workflow';
+import { API_BASE } from '../../config';
 
 interface Props {
   currentWorkflow?: Workflow;
@@ -50,7 +51,7 @@ export function GenerateModal({ currentWorkflow, onClose, onGenerated }: Props) 
     setError('');
 
     try {
-      const res = await fetch('http://localhost:8000/api/workflows/chat', {
+      const res = await fetch(`${API_BASE}/api/workflows/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

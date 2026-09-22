@@ -27,6 +27,7 @@ import {
   updateEdge,
   autoLayoutWorkflow,
 } from './features/workflow/WorkflowAdapter';
+import { API_BASE } from './config';
 import './index.css';
 
 const WORKFLOW_STORAGE_KEY = 'aiflow:workflow';
@@ -253,7 +254,7 @@ export default function App() {
   const handleValidate = useCallback(async () => {
     setIsValidating(true);
     try {
-      const res = await fetch('http://localhost:8000/api/workflows/validate', {
+      const res = await fetch(`${API_BASE}/api/workflows/validate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflow: workflowRef.current }),
@@ -356,7 +357,7 @@ export default function App() {
     if (!simulationSettings) return;
     const input = (workflowRef.current.metadata?.sample_input ?? {}) as Record<string, unknown>;
     try {
-      const res = await fetch('http://localhost:8000/api/workflows/simulate', {
+      const res = await fetch(`${API_BASE}/api/workflows/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflow: workflowRef.current, input, settings: simulationSettings }),
@@ -372,7 +373,7 @@ export default function App() {
   const handleResume = useCallback(async (nodeId: string, decision: 'approve' | 'reject') => {
     if (!simulationTrace) return;
     try {
-      const res = await fetch('http://localhost:8000/api/workflows/simulate/resume', {
+      const res = await fetch(`${API_BASE}/api/workflows/simulate/resume`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ trace_id: simulationTrace.trace_id, node_id: nodeId, decision }),

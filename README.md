@@ -271,6 +271,11 @@ The AI returns a complete updated workflow preserving all unchanged node IDs and
 |----------|-------------|---------|
 | `VITE_API_BASE_URL` | Backend URL | `http://localhost:8000` |
 
+> **Deploying beyond localhost?** The backend's CORS config uses `allow_credentials=True` with
+> wildcard methods and headers. This is fine for local development but should be tightened before
+> exposing the backend on a public URL: set `CORS_ORIGINS` to your exact frontend origin and
+> restrict `allow_methods` / `allow_headers` to only what the frontend actually sends.
+
 ---
 
 ## Workflow JSON Format

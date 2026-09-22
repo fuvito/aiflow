@@ -3,6 +3,7 @@ import type { Workflow } from '../../models/workflow';
 import type { ExecutionTrace, SimulationEvaluation, SimulationSettings } from '../../models/simulation';
 import { HelpIcon } from '../../components/HelpIcon';
 import { scaffoldSampleInput } from '../../utils/scaffoldInput';
+import { API_BASE } from '../../config';
 
 interface Props {
   workflow: Workflow;
@@ -86,7 +87,7 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
     setError('');
 
     try {
-      const res = await fetch('http://localhost:8000/api/workflows/simulate', {
+      const res = await fetch(`${API_BASE}/api/workflows/simulate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ workflow, input: parsed, settings }),
