@@ -1,5 +1,7 @@
 # AiFlow — AI Workflow Designer
 
+**GitHub:** https://github.com/fuvito/aiflow
+
 A developer tool for visually designing, generating, and exporting AI/agentic workflows.
 
 Describe a workflow in natural language → an LLM generates the structured graph → you edit, validate, simulate, and export it as JSON.
