@@ -430,27 +430,9 @@ Full spec: `docs/AiFlow - MVP2.5.md`
 
 ## Auth & Onboarding Polish
 
-### Task 34 — Supabase Email Templates `[ ]`
+### Task 34 — Supabase Email Templates `[-]`
 
-Update all Supabase transactional email templates to use AiFlow branding instead of the Supabase defaults.
-
-Templates to update (Supabase Dashboard → Authentication → Email Templates):
-
-- **Reset password** — triggered by `resetPasswordForEmail`. Should link to `/change-password` with a clear subject like "Reset your AiFlow password". Body should mention it expires and that they didn't request it if it was unexpected.
-- **Magic link / Sign in** — if magic link login is ever enabled. Should match the reset password style.
-- **Confirm signup** — triggered when a new user is created (email confirmation flow). May not be needed if confirmation is disabled, but worth setting up.
-- **Change email address** — triggered if a user updates their email in the future.
-- **Invite user** — triggered if Supabase invite flow is used to onboard approved users.
-
-**Design requirements:**
-- Match the AiFlow visual style (dark background, brand color `#7c6af7`, hexagon logo ⬡)
-- No Supabase branding
-- Clear, concise copy — explain what the email is for and what to do
-- Include footer: "AiFlow — built by Fuat Yazar" + GitHub link
-- Button CTA should be the primary action (click to reset / sign in)
-- Plain-text fallback included
-
-**Where to update:** Supabase Dashboard → Project → Authentication → Email Templates
+Skipped for MVP2.5 — Supabase requires custom SMTP to be configured before email templates can be edited. Templates are ready and saved at `docs/email-templates.md`. Apply when custom SMTP is set up (see Future Enhancements below).
 
 ---
 
@@ -473,6 +455,17 @@ Tighten Supabase's built-in rate limits for auth endpoints. Login and forgot-pas
 
 **Note:** These are Supabase-side controls only — no code changes required.
 
+
+---
+
+## Future Enhancements — Polish & Operations
+
+### Custom SMTP + Branded Email Templates
+
+Supabase requires custom SMTP before email templates can be customised. Once set up:
+
+- Configure SMTP in Supabase Dashboard → Project Settings → Auth → SMTP Settings
+- Apply the 5 branded templates saved in `docs/email-templates.md` (reset password, magic link, confirm signup, change email, invite user)
 
 ---
 
