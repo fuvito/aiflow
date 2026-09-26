@@ -149,7 +149,7 @@ describe('SimulateModal — submission', () => {
     fetchMock.mockReturnValue(new Promise(() => {})); // never resolves
     render(<SimulateModal workflow={makeWorkflow()} onClose={vi.fn()} onSimulated={vi.fn()} />);
     fireEvent.click(screen.getByText('Run Simulation'));
-    await waitFor(() => expect(screen.getByText(/Simulating/)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', { name: /Simulating/i })).toBeDisabled());
   });
 
   it('shows server error message from response detail', async () => {

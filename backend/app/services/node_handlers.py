@@ -7,6 +7,7 @@ LLM nodes support two modes controlled by settings.llm_mode:
   mock — instant deterministic output, no API call
   real — calls the configured LLM provider (requires LLM_API_KEY)
 """
+import asyncio
 import json as _json
 import random as _random
 from typing import Any
@@ -51,6 +52,9 @@ def _handle_end(
     return {"result": input_data}
 
 
+_LLM_NODE_TIMEOUT = 60.0  # seconds per LLM node in real mode
+
+
 async def _handle_llm(
     node: WorkflowNode, input_data: dict[str, Any], settings: SimulationSettings
 ) -> dict[str, Any]:
@@ -63,7 +67,16 @@ async def _handle_llm(
             + _json.dumps(input_data, indent=2, default=str)
             + "\n\nProcess the input according to your role and respond with a JSON object."
         )
-        result = await provider.complete_json(prompt, user_msg)
+        try:
+            result = await asyncio.wait_for(
+                provider.complete_json(prompt, user_msg),
+                timeout=_LLM_NODE_TIMEOUT,
+            )
+        except asyncio.TimeoutError:
+            raise RuntimeError(
+                f"LLM node '{node.name}' timed out after {int(_LLM_NODE_TIMEOUT)}s. "
+                "Check your API key and network, or switch to Mock mode."
+            )
         return {"result": result, "node_id": node.id, "node_name": node.name}
     return {
         "result": f"Mock LLM output for prompt: {prompt[:80]}",

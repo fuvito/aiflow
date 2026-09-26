@@ -39,6 +39,17 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
   const [inputError, setInputError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [elapsed, setElapsed] = useState(0);
+  const [nodeIdx, setNodeIdx] = useState(0);
+
+  useEffect(() => {
+    if (!isLoading) { setElapsed(0); setNodeIdx(0); return; }
+    const t = setInterval(() => {
+      setElapsed(s => s + 1);
+      setNodeIdx(i => (i + 1) % workflow.nodes.length);
+    }, 1000);
+    return () => clearInterval(t);
+  }, [isLoading, workflow.nodes.length]);
 
   const handleClose = () => {
     try {
@@ -292,6 +303,29 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
           </button>
         </div>
       </div>
+
+      {isLoading && (
+        <div className="sim-progress-overlay">
+          <div className="sim-progress-header">
+            <span className="sim-progress-spinner" />
+            <span className="sim-progress-title">Simulating</span>
+            <span className="sim-progress-elapsed">{elapsed}s</span>
+          </div>
+          <div className="sim-progress-workflow">{workflow.name}</div>
+          <div className="sim-progress-node">
+            → {workflow.nodes[nodeIdx]?.name ?? '…'}
+          </div>
+          <div className="sim-progress-meta">
+            {workflow.nodes.length} nodes
+            &nbsp;·&nbsp;
+            {settings.llm_mode === 'real' ? '⚡ Real LLM' : 'Mock LLM'}
+            {settings.evaluate && ' · Eval on'}
+          </div>
+          {settings.llm_mode === 'real' && (
+            <div className="sim-progress-hint">LLM calls may take 10–30s each</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

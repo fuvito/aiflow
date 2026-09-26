@@ -1319,6 +1319,73 @@ body {
   cursor: not-allowed;
 }
 
+/* ── Simulation progress overlay (bottom-right corner) ──────────────────────── */
+.sim-progress-overlay {
+  position: fixed;
+  bottom: 1.25rem;
+  right: 1.25rem;
+  z-index: 10000;
+  background: var(--surface-2, #1e1e2e);
+  border: 1px solid var(--border, #333);
+  border-radius: 10px;
+  padding: 12px 14px;
+  min-width: 220px;
+  max-width: 280px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sim-progress-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sim-progress-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid color-mix(in srgb, var(--brand) 30%, transparent);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+.sim-progress-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-1);
+  flex: 1;
+}
+.sim-progress-elapsed {
+  font-size: 12px;
+  color: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+.sim-progress-workflow {
+  font-size: 12px;
+  color: var(--text-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sim-progress-node {
+  font-size: 12px;
+  color: var(--brand);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sim-progress-meta {
+  font-size: 11px;
+  color: var(--text-3);
+}
+.sim-progress-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  opacity: 0.75;
+  font-style: italic;
+}
+
 /* ── Workflow chat modal (Generate + Refine) ─────────────────────────────────── */
 .chat-modal {
   width: 520px;

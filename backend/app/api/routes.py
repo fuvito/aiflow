@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import APIRouter, HTTPException, status as http_status
 from app.schemas.requests import (
     GenerateWorkflowRequest,
@@ -117,7 +119,12 @@ async def simulate_workflow(request: SimulateWorkflowRequest, user: ApprovedUser
     await _check_execution_limit(user)
 
     try:
-        trace = await simulate(request.workflow, request.input, request.settings)
+        trace = await asyncio.wait_for(
+            simulate(request.workflow, request.input, request.settings),
+            timeout=120.0,
+        )
+    except asyncio.TimeoutError:
+        raise HTTPException(status_code=504, detail="Simulation timed out after 120s.")
     except SimulationError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
