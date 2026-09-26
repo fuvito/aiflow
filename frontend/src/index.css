@@ -2452,4 +2452,3 @@ body {
   transition: background 0.15s, color 0.15s;
 }
 .ua-signout:hover { background: var(--bg-raised); color: #f87171; }
-}

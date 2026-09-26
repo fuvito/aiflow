@@ -15,7 +15,6 @@ import type {
   OnNodesChange,
   OnEdgesChange,
   OnConnect,
-  OnEdgeClick,
   Node as RFNode,
   Edge as RFEdge,
   Connection,
@@ -152,8 +151,8 @@ const Canvas = memo(function Canvas({ workflow, selectedNodeId, selectedEdgeId, 
     [rfNodes],
   );
 
-  const onEdgeClick: OnEdgeClick = useCallback(
-    (_, edge) => {
+  const onEdgeClick = useCallback(
+    (_: React.MouseEvent, edge: RFEdge) => {
       onSelectNode(null);
       onSelectEdge(edge.id);
     },
