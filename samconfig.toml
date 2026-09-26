@@ -11,6 +11,7 @@ region = "us-east-1"
 confirm_changeset = true
 capabilities = "CAPABILITY_IAM"
 disable_rollback = false
+profile = "aiflow"
 
 [default.deploy.parameters]
 # These will be prompted for on first run (sam deploy --guided)
