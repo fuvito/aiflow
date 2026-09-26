@@ -9,8 +9,9 @@ export default function ChangePasswordPage() {
   const [confirm, setConfirm] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const { session, refreshProfile } = useAuth();
+  const { session, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
+  const isForced = profile?.must_change_password ?? false;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,9 +53,11 @@ export default function ChangePasswordPage() {
         </div>
 
         <div className="auth-status-icon" style={{ textAlign: 'center', fontSize: 28 }}>🔑</div>
-        <h1>Set your password</h1>
+        <h1>{isForced ? 'Set your password' : 'Change password'}</h1>
         <p className="auth-subtitle">
-          You're signing in for the first time. Please set a new password to continue.
+          {isForced
+            ? "You're signing in for the first time. Please set a new password to continue."
+            : 'Enter a new password for your account.'}
         </p>
 
         <form onSubmit={handleSubmit} className="auth-form">

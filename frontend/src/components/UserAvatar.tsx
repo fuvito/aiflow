@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
 
@@ -117,6 +118,9 @@ export function UserAvatar() {
 
           <div className="ua-divider" />
 
+          <Link to="/change-password" className="ua-menu-link" onClick={() => setOpen(false)}>
+            Change password
+          </Link>
           <button className="ua-signout" onClick={signOut}>Sign out</button>
         </div>
       )}
