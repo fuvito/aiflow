@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
 import { API_BASE } from '../config';
+import { PasswordInput } from '../components/PasswordInput';
 
 export default function ChangePasswordPage() {
   const [password, setPassword] = useState('');
@@ -62,9 +63,8 @@ export default function ChangePasswordPage() {
 
         <form onSubmit={handleSubmit} className="auth-form">
           <label htmlFor="password">New password</label>
-          <input
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="At least 8 characters"
@@ -73,9 +73,8 @@ export default function ChangePasswordPage() {
           />
 
           <label htmlFor="confirm">Confirm password</label>
-          <input
+          <PasswordInput
             id="confirm"
-            type="password"
             value={confirm}
             onChange={e => setConfirm(e.target.value)}
             placeholder="Repeat your password"

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAnalytics } from '../hooks/useAnalytics';
+import { PasswordInput } from '../components/PasswordInput';
 
 export default function LoginPage() {
   const { track } = useAnalytics();
@@ -48,10 +49,12 @@ export default function LoginPage() {
             autoFocus
           />
 
-          <label htmlFor="password">Password</label>
-          <input
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <label htmlFor="password">Password</label>
+            <Link to="/forgot-password" className="auth-forgot-link" tabIndex={-1}>Forgot password?</Link>
+          </div>
+          <PasswordInput
             id="password"
-            type="password"
             value={password}
             onChange={e => setPassword(e.target.value)}
             placeholder="Your password"

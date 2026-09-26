@@ -9,6 +9,7 @@ import PendingPage from './pages/PendingPage';
 import RequestAccessPage from './pages/RequestAccessPage';
 import AdminPage from './pages/AdminPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import WorkflowApp from './App';
 import './index.css';
 
@@ -23,6 +24,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/request-access" element={<RequestAccessPage />} />
           <Route path="/pending" element={<PendingPage />} />
           <Route path="/change-password" element={<ChangePasswordPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
 
           {/* Protected workflow editor */}
           <Route
