@@ -454,6 +454,28 @@ Templates to update (Supabase Dashboard → Authentication → Email Templates):
 
 ---
 
+### Task 35 — Supabase Auth Rate Limits `[ ]`
+
+Tighten Supabase's built-in rate limits for auth endpoints. Login and forgot-password bypass the FastAPI backend entirely (direct Supabase JS client calls), so slowapi does not protect them — Supabase's own limits are the only server-side enforcement.
+
+**Where to update:** Supabase Dashboard → Project → Authentication → Rate Limits
+
+**Recommended settings:**
+
+| Endpoint | Default | Recommended |
+|---|---|---|
+| Sign-in attempts | high | 10 / hour per IP |
+| Password reset emails | high | 3 / hour per IP |
+| OTP / magic link emails | high | 5 / hour per IP |
+| Signups | high | 5 / hour per IP |
+
+**Why:** Without tightening these, an attacker can hammer the login endpoint or flood a target's inbox with reset emails. The Supabase defaults are intentionally permissive; tightening is a one-click dashboard change per limit.
+
+**Note:** These are Supabase-side controls only — no code changes required.
+
+
+---
+
 ## Future Enhancements — Cloud & Multi-user
 
 Not scoped for any current MVP. Would transform AiFlow from a local-first tool into a proper SaaS platform.
