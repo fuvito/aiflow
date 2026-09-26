@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { useAnalytics } from '../hooks/useAnalytics';
 import { PasswordInput } from '../components/PasswordInput';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 export default function LoginPage() {
   const { track } = useAnalytics();
@@ -10,14 +12,48 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !turnstileRef.current) return;
+    let widgetId: string | undefined;
+    let timer: ReturnType<typeof setTimeout>;
+
+    function tryRender() {
+      const w = window as any;
+      if (w.turnstile) {
+        widgetId = w.turnstile.render(turnstileRef.current!, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token: string) => setTurnstileToken(token),
+          'expired-callback': () => setTurnstileToken(''),
+          'error-callback': () => setTurnstileToken(''),
+        });
+      } else {
+        timer = setTimeout(tryRender, 100);
+      }
+    }
+
+    tryRender();
+
+    return () => {
+      clearTimeout(timer);
+      const w = window as any;
+      if (w.turnstile && widgetId !== undefined) w.turnstile.remove(widgetId);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
 
-    const { error: authError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+      options: TURNSTILE_SITE_KEY && turnstileToken ? { captchaToken: turnstileToken } : undefined,
+    });
     setLoading(false);
     if (authError) {
       setError(authError.message);
@@ -61,9 +97,22 @@ export default function LoginPage() {
             required
           />
 
+          {TURNSTILE_SITE_KEY && (
+            <div>
+              <div ref={turnstileRef} />
+              {!turnstileToken && (
+                <p className="auth-turnstile-hint">Please complete the security check above.</p>
+              )}
+            </div>
+          )}
+
           {error && <p className="auth-error">{error}</p>}
 
-          <button type="submit" className="auth-btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            className="auth-btn-primary"
+            disabled={loading || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
+          >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>

@@ -39,6 +39,7 @@ out/
 .env.*
 !.env.example
 !.env.template
+!.env.test
 
 ### IntelliJ IDEA ###
 .idea/
