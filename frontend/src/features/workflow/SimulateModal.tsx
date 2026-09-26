@@ -4,6 +4,7 @@ import type { ExecutionTrace, SimulationEvaluation, SimulationSettings } from '.
 import { HelpIcon } from '../../components/HelpIcon';
 import { scaffoldSampleInput } from '../../utils/scaffoldInput';
 import { API_BASE } from '../../config';
+import { useAuth } from '../../context/AuthContext';
 
 interface Props {
   workflow: Workflow;
@@ -26,6 +27,7 @@ const DEFAULT_SETTINGS: SimulationSettings = {
 };
 
 export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSave }: Props) {
+  const { session } = useAuth();
   const [settings, setSettings] = useState<SimulationSettings>(DEFAULT_SETTINGS);
   const [inputJson, setInputJson] = useState(() => {
     const saved = workflow.metadata?.sample_input;
@@ -89,7 +91,10 @@ export function SimulateModal({ workflow, onClose, onSimulated, onSampleInputSav
     try {
       const res = await fetch(`${API_BASE}/api/workflows/simulate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({ workflow, input: parsed, settings }),
       });
 

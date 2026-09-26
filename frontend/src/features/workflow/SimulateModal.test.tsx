@@ -5,6 +5,10 @@ import { NodeType } from '../../models/workflow';
 import type { Workflow } from '../../models/workflow';
 import type { ExecutionTrace } from '../../models/simulation';
 
+vi.mock('../../context/AuthContext', () => ({
+  useAuth: () => ({ session: { access_token: 'test-token' } }),
+}));
+
 // ── Fetch mock ───────────────────────────────────────────────────────
 const fetchMock = vi.fn();
 vi.stubGlobal('fetch', fetchMock);

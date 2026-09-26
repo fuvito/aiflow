@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import type { Workflow } from '../../models/workflow';
 import { API_BASE } from '../../config';
+import { useAuth } from '../../context/AuthContext';
 
 interface Props {
   currentWorkflow?: Workflow;
@@ -15,6 +16,7 @@ type Message = {
 };
 
 export function GenerateModal({ currentWorkflow, onClose, onGenerated }: Props) {
+  const { session } = useAuth();
   const isRefinement = !!currentWorkflow;
 
   const [messages, setMessages] = useState<Message[]>(() =>
@@ -53,7 +55,10 @@ export function GenerateModal({ currentWorkflow, onClose, onGenerated }: Props) 
     try {
       const res = await fetch(`${API_BASE}/api/workflows/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+        },
         body: JSON.stringify({
           messages: nextMessages.map((m) => ({ role: m.role, content: m.content })),
           current_workflow: currentWorkflow ?? null,
