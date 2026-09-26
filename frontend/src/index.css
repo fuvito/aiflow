@@ -2016,7 +2016,7 @@ body {
   display: flex; align-items: center; justify-content: space-between;
   padding: 14px 48px; border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 50;
-  background: rgba(14,14,16,0.85); backdrop-filter: blur(12px);
+  background: var(--bg-body); backdrop-filter: blur(12px);
 }
 .landing-nav-brand {
   display: flex; align-items: center; gap: 8px;
@@ -2038,6 +2038,14 @@ body {
   transition: background 0.15s !important;
 }
 .landing-nav-cta:hover { background: var(--accent-h) !important; }
+
+.landing-nav-theme {
+  background: transparent; border: 1px solid var(--border-md);
+  color: var(--text-2); border-radius: 6px; padding: 4px 8px;
+  font-size: 13px; cursor: pointer; transition: border-color 0.15s, color 0.15s;
+  line-height: 1;
+}
+.landing-nav-theme:hover { border-color: var(--brand); color: var(--text); }
 
 .landing-container {
   max-width: 900px; margin: 0 auto; padding: 0 24px;

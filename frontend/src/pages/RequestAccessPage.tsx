@@ -60,7 +60,7 @@ export default function RequestAccessPage() {
           <div className="auth-sent-icon">✓</div>
           <h2>Request received</h2>
           <p className="auth-subtitle">
-            Thanks! You'll receive an email with a magic link when your access is approved.
+            Thanks! You'll receive instructions on how to access AiFlow once your request is approved.
           </p>
           <Link to="/" className="auth-btn-primary" style={{ textDecoration: 'none', textAlign: 'center', display: 'block' }}>
             Back to home

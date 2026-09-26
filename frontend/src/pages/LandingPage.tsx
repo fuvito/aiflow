@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const GITHUB_URL = 'https://github.com/fuatyazar/aiflow';
@@ -44,6 +45,20 @@ const TECH_STACK = [
 ];
 
 export default function LandingPage() {
+  const [isDark, setIsDark] = useState(() => localStorage.getItem('aiflow-theme') !== 'light');
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
+  function toggleTheme() {
+    setIsDark(d => {
+      const next = !d;
+      localStorage.setItem('aiflow-theme', next ? 'dark' : 'light');
+      return next;
+    });
+  }
+
   return (
     <div className="landing">
       {/* ── Nav ── */}
@@ -54,6 +69,9 @@ export default function LandingPage() {
         </div>
         <div className="landing-nav-links">
           <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">GitHub</a>
+          <button className="landing-nav-theme" onClick={toggleTheme} title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}>
+            {isDark ? '☀' : '☾'}
+          </button>
           <Link to="/login" className="landing-nav-login">Sign in</Link>
           <Link to="/request-access" className="landing-nav-cta">Request access</Link>
         </div>
@@ -246,14 +264,14 @@ function WorkflowVisual() {
             key={i}
             x1={nodeMap[e.from].x} y1={nodeMap[e.from].y}
             x2={nodeMap[e.to].x} y2={nodeMap[e.to].y}
-            stroke="rgba(255,255,255,0.2)" strokeWidth="2"
+            stroke="var(--border-md)" strokeWidth="2"
           />
         ))}
         {nodes.map(n => (
           <g key={n.id} transform={`translate(${n.x},${n.y})`}>
             <rect
               width="88" height="32" rx="6"
-              fill="rgba(255,255,255,0.06)"
+              fill="var(--bg-raised)"
               stroke={n.color}
               strokeWidth="1.5"
             />
