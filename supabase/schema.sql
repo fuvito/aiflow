@@ -116,6 +116,25 @@ create policy "Users can view own usage"
   using (auth.uid() = user_id);
 
 
+-- ── Analytics Events ────────────────────────────────────────────────────────
+-- Lightweight event log (page views, logins, workflow usage).
+-- Inserts are public; all reads go via backend service role.
+
+create table if not exists public.analytics_events (
+  id         uuid        default gen_random_uuid() primary key,
+  event      text        not null,
+  page       text,
+  user_id    uuid        references auth.users(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.analytics_events enable row level security;
+
+create policy "Anyone can insert analytics"
+  on public.analytics_events for insert
+  with check (true);
+
+
 -- ── Indexes ──────────────────────────────────────────────────────────────────
 
 create index if not exists user_profiles_access_status_idx
@@ -126,3 +145,9 @@ create index if not exists access_requests_status_idx
 
 create index if not exists usage_tracking_user_date_idx
   on public.usage_tracking (user_id, date);
+
+create index if not exists analytics_events_event_idx
+  on public.analytics_events (event);
+
+create index if not exists analytics_events_created_at_idx
+  on public.analytics_events (created_at desc);
