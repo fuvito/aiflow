@@ -1,0 +1,93 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: AiFlow FastAPI backend — Lambda + API Gateway
+
+Globals:
+  Function:
+    Timeout: 60          # seconds; LLM calls can be slow
+    MemorySize: 512
+    Runtime: python3.12
+    Environment:
+      Variables:
+        # Override these in samconfig.toml or via AWS Console / Parameter Store
+        LLM_PROVIDER: openai
+        LLM_API_KEY: !Ref LLMApiKey
+        LLM_MODEL: gpt-4o-mini
+        LLM_BASE_URL: ""
+        CORS_ORIGINS: !Sub '["${FrontendOrigin}"]'
+        SUPABASE_URL: !Ref SupabaseUrl
+        SUPABASE_SERVICE_ROLE_KEY: !Ref SupabaseServiceRoleKey
+        SUPABASE_JWT_SECRET: !Ref SupabaseJwtSecret
+        DEMO_MAX_EXECUTIONS_PER_DAY: "10"
+        DEMO_MAX_LLM_REQUESTS_PER_DAY: "20"
+        APPROVED_MAX_EXECUTIONS_PER_DAY: "0"
+        APPROVED_MAX_LLM_REQUESTS_PER_DAY: "0"
+
+Parameters:
+  LLMApiKey:
+    Type: String
+    NoEcho: true
+    Description: LLM provider API key (OpenAI, etc.)
+  SupabaseUrl:
+    Type: String
+    Description: Your Supabase project URL
+  SupabaseServiceRoleKey:
+    Type: String
+    NoEcho: true
+    Description: Supabase service role key (server-side only)
+  SupabaseJwtSecret:
+    Type: String
+    NoEcho: true
+    Description: Supabase JWT secret (from Supabase Dashboard → Settings → API)
+  FrontendOrigin:
+    Type: String
+    Description: "Frontend URL for CORS (e.g. https://main.d1abc.amplifyapp.com)"
+
+Resources:
+  AiFlowFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      FunctionName: aiflow-api
+      CodeUri: backend/
+      Handler: lambda_handler.handler
+      Description: AiFlow FastAPI backend
+      Events:
+        ApiRoot:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AiFlowApi
+            Path: /{proxy+}
+            Method: ANY
+        ApiHealth:
+          Type: HttpApi
+          Properties:
+            ApiId: !Ref AiFlowApi
+            Path: /api/health
+            Method: GET
+
+  AiFlowApi:
+    Type: AWS::Serverless::HttpApi
+    Properties:
+      StageName: Prod
+      CorsConfiguration:
+        AllowOrigins:
+          - !Sub "https://${FrontendOrigin}"
+          - "http://localhost:5173"
+        AllowMethods:
+          - GET
+          - POST
+          - PATCH
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - Content-Type
+          - Authorization
+        AllowCredentials: true
+
+Outputs:
+  ApiUrl:
+    Description: API Gateway endpoint URL
+    Value: !Sub "https://${AiFlowApi}.execute-api.${AWS::Region}.amazonaws.com/Prod"
+  FunctionArn:
+    Description: Lambda function ARN
+    Value: !GetAtt AiFlowFunction.Arn

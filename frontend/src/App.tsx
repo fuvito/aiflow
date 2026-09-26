@@ -40,7 +40,7 @@ function loadPersistedWorkflow(): Workflow {
   return createDefaultWorkflow();
 }
 
-export default function App() {
+export default function WorkflowApp() {
   const { workflow, setWorkflow, reset, undo, redo, canUndo, canRedo } = useWorkflowHistory(loadPersistedWorkflow);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);

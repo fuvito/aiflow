@@ -1,5 +1,6 @@
 import type { ValidationResult } from '../features/workflow/ValidationPanel';
 import { HelpIcon } from './HelpIcon';
+import { UserAvatar } from './UserAvatar';
 
 interface Props {
   workflowName: string;
@@ -108,6 +109,7 @@ export function Toolbar({
           Refine
         </button>
         <button className="btn btn-primary" onClick={onGenerate}>Generate</button>
+        <UserAvatar />
       </div>
     </header>
   );

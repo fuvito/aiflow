@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, status as http_status
 from app.schemas.requests import (
     GenerateWorkflowRequest,
     GenerateWorkflowResponse,
@@ -18,8 +18,46 @@ from app.services.workflow_generator import generate_workflow, chat_workflow_ser
 from app.services.simulator import simulate, resume_simulation, get_paused_settings, SimulationError
 from app.services.evaluator import mock_evaluate, llm_evaluate, EvaluationError
 from app.providers.factory import get_provider
+from app.api.deps import ApprovedUser
+from app.core.config import settings
+from app.core.supabase_client import get_usage_today, increment_usage
+from app.models.user import UserProfile
 
 router = APIRouter(prefix="/api")
+
+
+async def _check_llm_limit(user: UserProfile) -> None:
+    """Raise 429 if the user has hit their daily LLM request limit."""
+    max_llm = (
+        settings.demo_max_llm_requests_per_day
+        if user.role == "demo"
+        else settings.approved_max_llm_requests_per_day
+    )
+    if max_llm <= 0:
+        return  # 0 = unlimited
+    usage = await get_usage_today(user.id)
+    if usage.get("llm_requests", 0) >= max_llm:
+        raise HTTPException(
+            status_code=http_status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily AI request limit ({max_llm}) reached. Try again tomorrow.",
+        )
+
+
+async def _check_execution_limit(user: UserProfile) -> None:
+    """Raise 429 if the user has hit their daily execution limit."""
+    max_exec = (
+        settings.demo_max_executions_per_day
+        if user.role == "demo"
+        else settings.approved_max_executions_per_day
+    )
+    if max_exec <= 0:
+        return
+    usage = await get_usage_today(user.id)
+    if usage.get("executions", 0) >= max_exec:
+        raise HTTPException(
+            status_code=http_status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Daily execution limit ({max_exec}) reached. Try again tomorrow.",
+        )
 
 
 @router.get("/health")
@@ -28,7 +66,7 @@ async def health():
 
 
 @router.post("/workflows/validate", response_model=ValidateWorkflowResponse)
-async def validate(request: ValidateWorkflowRequest):
+async def validate(request: ValidateWorkflowRequest, user: ApprovedUser):
     result = validate_workflow(request.workflow)
     return ValidateWorkflowResponse(
         valid=result.valid,
@@ -38,7 +76,9 @@ async def validate(request: ValidateWorkflowRequest):
 
 
 @router.post("/workflows/generate", response_model=GenerateWorkflowResponse)
-async def generate(request: GenerateWorkflowRequest):
+async def generate(request: GenerateWorkflowRequest, user: ApprovedUser):
+    await _check_llm_limit(user)
+
     try:
         provider = get_provider()
     except RuntimeError as exc:
@@ -49,38 +89,49 @@ async def generate(request: GenerateWorkflowRequest):
     except WorkflowGenerationError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
+    await increment_usage(user.id, "llm_requests")
     return GenerateWorkflowResponse(workflow=workflow)
 
 
 @router.post("/workflows/chat", response_model=WorkflowChatResponse)
-async def chat_workflow(request: WorkflowChatRequest):
+async def chat_workflow(request: WorkflowChatRequest, user: ApprovedUser):
+    await _check_llm_limit(user)
+
     try:
         provider = get_provider()
     except RuntimeError as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
     try:
-        return await chat_workflow_service(request.messages, request.current_workflow, provider)
+        result = await chat_workflow_service(request.messages, request.current_workflow, provider)
     except WorkflowGenerationError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
+    await increment_usage(user.id, "llm_requests")
+    return result
+
 
 @router.post("/workflows/simulate", response_model=SimulateWorkflowResponse)
-async def simulate_workflow(request: SimulateWorkflowRequest):
+async def simulate_workflow(request: SimulateWorkflowRequest, user: ApprovedUser):
+    await _check_execution_limit(user)
+
     try:
         trace = await simulate(request.workflow, request.input, request.settings)
     except SimulationError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
+
+    await increment_usage(user.id, "executions")
 
     evaluation = None
     if request.settings.evaluate and trace.status == "complete":
         if request.settings.llm_mode == LLMMode.MOCK:
             evaluation = mock_evaluate(request.workflow, trace)
         else:
-            # Real LLM path — active when llm_mode='real' is added to the enum.
+            await _check_llm_limit(user)
             try:
                 provider = get_provider()
                 evaluation = await llm_evaluate(request.workflow, trace, provider)
+                await increment_usage(user.id, "llm_requests")
             except (RuntimeError, EvaluationError):
                 evaluation = mock_evaluate(request.workflow, trace)
 
@@ -88,8 +139,7 @@ async def simulate_workflow(request: SimulateWorkflowRequest):
 
 
 @router.post("/workflows/simulate/resume", response_model=SimulateWorkflowResponse)
-async def resume_simulation_endpoint(request: ResumeSimulationRequest):
-    # Read settings/workflow before resume_simulation consumes the paused state.
+async def resume_simulation_endpoint(request: ResumeSimulationRequest, user: ApprovedUser):
     paused_info = get_paused_settings(request.trace_id)
 
     try:
@@ -107,6 +157,7 @@ async def resume_simulation_endpoint(request: ResumeSimulationRequest):
                 try:
                     provider = get_provider()
                     evaluation = await llm_evaluate(resume_workflow, trace, provider)
+                    await increment_usage(user.id, "llm_requests")
                 except (RuntimeError, EvaluationError):
                     evaluation = mock_evaluate(resume_workflow, trace)
 

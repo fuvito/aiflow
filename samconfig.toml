@@ -1,0 +1,25 @@
+# AWS SAM deploy configuration
+# Run: sam deploy --guided  (first time)
+# Run: sam deploy           (subsequent deploys)
+
+version = 0.1
+
+[default]
+[default.global.parameters]
+stack_name = "aiflow"
+region = "us-east-1"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+disable_rollback = false
+
+[default.deploy.parameters]
+# These will be prompted for on first run (sam deploy --guided)
+# or can be set here (not recommended for secrets — use environment variables)
+#
+# parameter_overrides = [
+#   "LLMApiKey=sk-...",
+#   "SupabaseUrl=https://xxx.supabase.co",
+#   "SupabaseServiceRoleKey=...",
+#   "SupabaseJwtSecret=...",
+#   "FrontendOrigin=main.d1abc.amplifyapp.com",
+# ]
