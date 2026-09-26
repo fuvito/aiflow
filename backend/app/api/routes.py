@@ -20,7 +20,7 @@ from app.services.evaluator import mock_evaluate, llm_evaluate, EvaluationError
 from app.providers.factory import get_provider
 from app.api.deps import ApprovedUser
 from app.core.config import settings
-from app.core.supabase_client import get_usage_today, increment_usage
+from app.core.supabase_client import get_usage_today, increment_usage, insert_analytics_event
 from app.models.user import UserProfile
 
 router = APIRouter(prefix="/api")
@@ -90,6 +90,7 @@ async def generate(request: GenerateWorkflowRequest, user: ApprovedUser):
         raise HTTPException(status_code=422, detail=str(exc))
 
     await increment_usage(user.id, "llm_requests")
+    await insert_analytics_event("workflow_generate", user_id=user.id)
     return GenerateWorkflowResponse(workflow=workflow)
 
 
@@ -121,6 +122,7 @@ async def simulate_workflow(request: SimulateWorkflowRequest, user: ApprovedUser
         raise HTTPException(status_code=422, detail=str(exc))
 
     await increment_usage(user.id, "executions")
+    await insert_analytics_event("workflow_simulate", user_id=user.id)
 
     evaluation = None
     if request.settings.evaluate and trace.status == "complete":

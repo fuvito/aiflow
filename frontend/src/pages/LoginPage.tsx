@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 export default function LoginPage() {
+  const { track } = useAnalytics();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -19,6 +21,7 @@ export default function LoginPage() {
     if (authError) {
       setError(authError.message);
     } else {
+      track('login');
       navigate('/app');
     }
   }

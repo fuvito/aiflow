@@ -39,13 +39,16 @@ function setupFetch(users = USERS, requests = REQUESTS) {
     if (url.includes('/admin/users/')) {
       return Promise.resolve({ ok: true, json: async () => ({}) });
     }
+    if (url.includes('/admin/analytics')) {
+      return Promise.resolve({ ok: true, json: async () => ({ totals: {}, daily: [] }) });
+    }
     if (url.includes('/admin/users')) {
       return Promise.resolve({ ok: true, json: async () => users });
     }
     if (url.includes('/admin/access-requests')) {
       return Promise.resolve({ ok: true, json: async () => requests });
     }
-    return Promise.resolve({ ok: true, json: async () => [] });
+    return Promise.resolve({ ok: true, json: async () => ({}) });
   });
 }
 

@@ -22,13 +22,19 @@ interface AccessRequest {
   created_at: string;
 }
 
-type Tab = 'users' | 'requests';
+interface AnalyticsSummary {
+  totals: Record<string, number>;
+  daily: Array<{ date: string; event: string; count: number }>;
+}
+
+type Tab = 'users' | 'requests' | 'analytics';
 
 export default function AdminPage() {
   const { session } = useAuth();
   const [tab, setTab] = useState<Tab>('users');
   const [users, setUsers] = useState<UserRow[]>([]);
   const [requests, setRequests] = useState<AccessRequest[]>([]);
+  const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -51,9 +57,15 @@ export default function AdminPage() {
     setRequests(await res.json());
   }
 
+  async function fetchAnalytics() {
+    const res = await fetch(`${API_BASE}/api/admin/analytics`, { headers: authHeaders() });
+    if (!res.ok) throw new Error('Failed to load analytics');
+    setAnalytics(await res.json());
+  }
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchUsers(), fetchRequests()])
+    Promise.all([fetchUsers(), fetchRequests(), fetchAnalytics()])
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -108,6 +120,12 @@ export default function AdminPage() {
             onClick={() => setTab('requests')}
           >
             Requests ({requests.filter(r => r.status === 'pending').length} pending)
+          </button>
+          <button
+            className={`admin-tab ${tab === 'analytics' ? 'admin-tab-active' : ''}`}
+            onClick={() => setTab('analytics')}
+          >
+            Analytics
           </button>
         </div>
       </header>
@@ -175,6 +193,47 @@ export default function AdminPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {tab === 'analytics' && analytics && (
+        <div className="admin-analytics">
+          <h2>Event totals (last 30 days)</h2>
+          <table className="admin-table">
+            <thead>
+              <tr><th>Event</th><th>Count</th></tr>
+            </thead>
+            <tbody>
+              {Object.entries(analytics.totals)
+                .sort((a, b) => b[1] - a[1])
+                .map(([evt, cnt]) => (
+                  <tr key={evt}>
+                    <td><code>{evt}</code></td>
+                    <td>{cnt}</td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+
+          {analytics.daily.length > 0 && (
+            <>
+              <h2>Daily breakdown</h2>
+              <table className="admin-table">
+                <thead>
+                  <tr><th>Date</th><th>Event</th><th>Count</th></tr>
+                </thead>
+                <tbody>
+                  {[...analytics.daily].reverse().map((row, i) => (
+                    <tr key={i}>
+                      <td>{row.date}</td>
+                      <td><code>{row.event}</code></td>
+                      <td>{row.count}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
+          )}
         </div>
       )}
 

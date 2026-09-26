@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 const GITHUB_URL = 'https://github.com/fuatyazar/aiflow';
 
@@ -46,10 +47,15 @@ const TECH_STACK = [
 
 export default function LandingPage() {
   const [isDark, setIsDark] = useState(() => localStorage.getItem('aiflow-theme') !== 'light');
+  const { track } = useAnalytics();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   }, [isDark]);
+
+  useEffect(() => {
+    track('page_view', 'landing');
+  }, [track]);
 
   function toggleTheme() {
     setIsDark(d => {

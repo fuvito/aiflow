@@ -1,15 +1,18 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
 from app.api.deps import AdminUser, CurrentUser
 from app.core.config import settings
+from app.core.limiter import limiter
 from app.core.supabase_client import (
     get_access_requests,
     get_all_users,
+    get_analytics_summary,
     get_usage_today,
     insert_access_request,
+    insert_analytics_event,
     invalidate_profile_cache,
     update_access_request,
     update_user_profile,
@@ -17,6 +20,20 @@ from app.core.supabase_client import (
 from app.models.user import AccessRequest, UsageToday, UserProfile
 
 router = APIRouter(prefix="/api")
+
+
+# ── Public: analytics event tracking ──────────────────────────────────────
+
+
+class AnalyticsEventBody(BaseModel):
+    event: str
+    page: Optional[str] = None
+
+
+@router.post("/analytics/event", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("60/minute")
+async def track_event(body: AnalyticsEventBody, request: Request):
+    await insert_analytics_event(body.event, body.page)
 
 
 # ── Public: submit access request ──────────────────────────────────────────
@@ -105,6 +122,11 @@ async def update_user(user_id: str, body: UpdateUserBody, admin: AdminUser):
     await update_user_profile(user_id, patch)
     invalidate_profile_cache(user_id)
     return {"message": "User updated."}
+
+
+@router.get("/admin/analytics")
+async def get_analytics(admin: AdminUser):
+    return await get_analytics_summary()
 
 
 @router.get("/admin/access-requests")

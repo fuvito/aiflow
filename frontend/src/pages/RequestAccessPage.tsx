@@ -1,8 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE } from '../config';
+import { useAnalytics } from '../hooks/useAnalytics';
 
 export default function RequestAccessPage() {
+  const { track } = useAnalytics();
   const [form, setForm] = useState({
     name: '',
     email: '',
@@ -13,6 +15,10 @@ export default function RequestAccessPage() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    track('page_view', 'request_access');
+  }, [track]);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -41,6 +47,7 @@ export default function RequestAccessPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.detail ?? 'Something went wrong. Please try again.');
       }
+      track('request_access_submit');
       setSubmitted(true);
     } catch (err: any) {
       setError(err.message);

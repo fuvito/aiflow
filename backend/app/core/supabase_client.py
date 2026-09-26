@@ -108,6 +108,56 @@ async def get_usage_today(user_id: str) -> dict[str, Any]:
         return rows[0] if rows else {"user_id": user_id, "date": today, "executions": 0, "llm_requests": 0}
 
 
+async def insert_analytics_event(
+    event: str, page: Optional[str] = None, user_id: Optional[str] = None
+) -> None:
+    url = f"{settings.supabase_url}/rest/v1/analytics_events"
+    headers = {**_base_headers(), "Prefer": "return=minimal"}
+    payload: dict[str, Any] = {"event": event}
+    if page:
+        payload["page"] = page
+    if user_id:
+        payload["user_id"] = user_id
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, headers=headers, json=payload)
+            resp.raise_for_status()
+    except Exception:
+        pass  # analytics is non-fatal
+
+
+async def get_analytics_summary() -> dict[str, Any]:
+    from datetime import date, timedelta
+    since = (date.today() - timedelta(days=30)).isoformat()
+    url = f"{settings.supabase_url}/rest/v1/analytics_events"
+    params = {
+        "select": "event,page,created_at",
+        "created_at": f"gte.{since}T00:00:00Z",
+        "order": "created_at.desc",
+        "limit": "5000",
+    }
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, headers=_base_headers(), params=params)
+        resp.raise_for_status()
+        events = resp.json()
+
+    totals: dict[str, int] = {}
+    by_date: dict[str, dict[str, int]] = {}
+    for e in events:
+        etype = e["event"]
+        totals[etype] = totals.get(etype, 0) + 1
+        day = e["created_at"][:10]
+        by_date.setdefault(day, {})
+        by_date[day][etype] = by_date[day].get(etype, 0) + 1
+
+    daily = [
+        {"date": day, "event": evt, "count": cnt}
+        for day, evts in sorted(by_date.items())
+        for evt, cnt in evts.items()
+    ]
+    return {"totals": totals, "daily": daily}
+
+
 async def increment_usage(user_id: str, field: str) -> None:
     """Upsert today's usage row and increment the given field (executions or llm_requests)."""
     from datetime import date
