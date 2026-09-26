@@ -6,6 +6,10 @@ from app.providers.base import LLMProvider
 
 BASE = "http://test"
 
+# All workflow routes require an authenticated approved user.
+# The override_approved_user fixture (from conftest.py) satisfies that.
+pytestmark = pytest.mark.usefixtures("override_approved_user")
+
 
 def _transport():
     return ASGITransport(app=app)

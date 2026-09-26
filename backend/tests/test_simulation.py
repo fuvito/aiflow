@@ -8,6 +8,9 @@ from app.schemas.simulation import SimulationSettings, ConditionMode, HITLMode
 from app.services.simulator import simulate, resume_simulation, SimulationError, _paused_store
 from app.services.evaluator import mock_evaluate, llm_evaluate, EvaluationError
 
+# All route-level tests in this file need an authenticated approved user.
+pytestmark = pytest.mark.usefixtures("override_approved_user")
+
 BASE = "http://test"
 
 
