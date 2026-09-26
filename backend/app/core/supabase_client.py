@@ -2,12 +2,15 @@
 Thin async wrapper around the Supabase REST API using httpx.
 Uses the service role key — never expose this to the frontend.
 """
+import logging
 import time
 from typing import Any, Optional
 
 import httpx
 
 from app.core.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Simple in-process cache: {user_id: (profile_dict, expires_at)}
 _profile_cache: dict[str, tuple[dict, float]] = {}
@@ -156,6 +159,32 @@ async def get_analytics_summary() -> dict[str, Any]:
         for evt, cnt in evts.items()
     ]
     return {"totals": totals, "daily": daily}
+
+
+async def bootstrap_admin(email: str) -> None:
+    """On startup: promote the given email to approved admin if they exist and aren't already."""
+    url = f"{settings.supabase_url}/rest/v1/user_profiles"
+    params = {"email": f"eq.{email}", "select": "id,access_status,role", "limit": "1"}
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(url, headers=_base_headers(), params=params)
+        resp.raise_for_status()
+        rows = resp.json()
+    if not rows:
+        return  # user hasn't signed up yet — nothing to do
+    profile = rows[0]
+    if profile["access_status"] == "approved" and profile["role"] == "admin":
+        return  # already correct
+    patch_params = {"id": f"eq.{profile['id']}"}
+    async with httpx.AsyncClient() as client:
+        resp = await client.patch(
+            url,
+            headers=_base_headers(),
+            params=patch_params,
+            json={"access_status": "approved", "role": "admin"},
+        )
+        resp.raise_for_status()
+    invalidate_profile_cache(profile["id"])
+    logger.info("bootstrap: promoted %s to approved admin", email)
 
 
 async def increment_usage(user_id: str, field: str) -> None:

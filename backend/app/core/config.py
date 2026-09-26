@@ -27,6 +27,9 @@ class Settings(BaseSettings):
     # Cloudflare Turnstile (leave empty to skip verification in dev)
     turnstile_secret_key: str = ""
 
+    # Bootstrap: auto-promote this email to approved admin on startup
+    admin_email: str = ""
+
     class Config:
         env_file = ".env"
 
