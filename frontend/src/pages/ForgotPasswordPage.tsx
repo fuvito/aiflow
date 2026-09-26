@@ -105,14 +105,7 @@ export default function ForgotPasswordPage() {
             autoFocus
           />
 
-          {TURNSTILE_SITE_KEY && (
-            <div>
-              <div ref={turnstileRef} />
-              {!turnstileToken && (
-                <p className="auth-turnstile-hint">Please complete the security check above.</p>
-              )}
-            </div>
-          )}
+          {TURNSTILE_SITE_KEY && <div ref={turnstileRef} />}
 
           {error && <p className="auth-error">{error}</p>}
 
