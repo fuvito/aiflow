@@ -1,5 +1,6 @@
 from typing import Optional
 
+import httpx
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
@@ -45,11 +46,49 @@ class AccessRequestBody(BaseModel):
     linkedin_url: Optional[str] = None
     company: Optional[str] = None
     message: Optional[str] = None
+    website: Optional[str] = None          # honeypot — must be empty
+    turnstile_token: Optional[str] = None  # Cloudflare Turnstile response token
+
+
+async def _verify_turnstile(token: str, remote_ip: str) -> bool:
+    """Verify a Cloudflare Turnstile token. Returns True when secret is unset (dev mode)."""
+    if not settings.turnstile_secret_key:
+        return True
+    if not token:
+        return False
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+                data={
+                    "secret": settings.turnstile_secret_key,
+                    "response": token,
+                    "remoteip": remote_ip,
+                },
+            )
+            return resp.json().get("success", False)
+    except Exception:
+        return False
 
 
 @router.post("/access-requests", status_code=status.HTTP_201_CREATED)
-async def submit_access_request(body: AccessRequestBody):
-    await insert_access_request(body.model_dump(exclude_none=False))
+@limiter.limit("5/hour")
+async def submit_access_request(body: AccessRequestBody, request: Request):
+    # Honeypot: real users leave this blank; bots fill it in.
+    # Return success silently so bots don't know they were caught.
+    if body.website:
+        return {"message": "Request received. You will be notified when approved."}
+
+    # Cloudflare Turnstile verification
+    remote_ip = request.client.host if request.client else ""
+    if not await _verify_turnstile(body.turnstile_token or "", remote_ip):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Security check failed. Please refresh and try again.",
+        )
+
+    data = body.model_dump(exclude={"website", "turnstile_token"})
+    await insert_access_request(data)
     return {"message": "Request received. You will be notified when approved."}
 
 

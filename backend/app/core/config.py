@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     approved_max_executions_per_day: int = 0
     approved_max_llm_requests_per_day: int = 0
 
+    # Cloudflare Turnstile (leave empty to skip verification in dev)
+    turnstile_secret_key: str = ""
+
     class Config:
         env_file = ".env"
 

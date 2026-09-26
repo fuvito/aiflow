@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { API_BASE } from '../config';
 import { useAnalytics } from '../hooks/useAnalytics';
+
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 export default function RequestAccessPage() {
   const { track } = useAnalytics();
@@ -11,7 +13,10 @@ export default function RequestAccessPage() {
     linkedin_url: '',
     company: '',
     message: '',
+    website: '',  // honeypot
   });
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const turnstileRef = useRef<HTMLDivElement>(null);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -19,6 +24,35 @@ export default function RequestAccessPage() {
   useEffect(() => {
     track('page_view', 'request_access');
   }, [track]);
+
+  // Mount Cloudflare Turnstile widget once the script has loaded
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY || !turnstileRef.current) return;
+    let widgetId: string | undefined;
+    let timer: ReturnType<typeof setTimeout>;
+
+    function tryRender() {
+      const w = window as any;
+      if (w.turnstile) {
+        widgetId = w.turnstile.render(turnstileRef.current!, {
+          sitekey: TURNSTILE_SITE_KEY,
+          callback: (token: string) => setTurnstileToken(token),
+          'expired-callback': () => setTurnstileToken(''),
+          'error-callback': () => setTurnstileToken(''),
+        });
+      } else {
+        timer = setTimeout(tryRender, 100);
+      }
+    }
+
+    tryRender();
+
+    return () => {
+      clearTimeout(timer);
+      const w = window as any;
+      if (w.turnstile && widgetId !== undefined) w.turnstile.remove(widgetId);
+    };
+  }, []);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -35,6 +69,8 @@ export default function RequestAccessPage() {
       linkedin_url: form.linkedin_url,
       ...(form.company && { company: form.company }),
       ...(form.message && { message: form.message }),
+      website: form.website,
+      turnstile_token: turnstileToken,
     };
 
     try {
@@ -153,9 +189,37 @@ export default function RequestAccessPage() {
             placeholder="I'm interested in exploring AiFlow because… (optional)"
           />
 
+          {/* Honeypot — hidden from real users, bots fill it in */}
+          <div className="auth-honey" aria-hidden="true">
+            <label htmlFor="website">Website</label>
+            <input
+              id="website"
+              name="website"
+              type="text"
+              value={form.website}
+              onChange={handleChange}
+              tabIndex={-1}
+              autoComplete="off"
+            />
+          </div>
+
+          {/* Cloudflare Turnstile — only rendered when VITE_TURNSTILE_SITE_KEY is set */}
+          {TURNSTILE_SITE_KEY && (
+            <div>
+              <div ref={turnstileRef} />
+              {!turnstileToken && (
+                <p className="auth-turnstile-hint">Please complete the security check above.</p>
+              )}
+            </div>
+          )}
+
           {error && <p className="auth-error">{error}</p>}
 
-          <button type="submit" className="auth-btn-primary" disabled={loading}>
+          <button
+            type="submit"
+            className="auth-btn-primary"
+            disabled={loading || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
+          >
             {loading ? 'Sending…' : 'Request access'}
           </button>
         </form>
