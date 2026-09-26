@@ -1,8 +1,14 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from app.services.workflow_generator import generate_workflow, WorkflowGenerationError
+from app.services.workflow_generator import (
+    generate_workflow,
+    chat_workflow_service,
+    _parse_workflow_from_raw,
+    WorkflowGenerationError,
+)
 from app.providers.base import LLMProvider
 from app.models.workflow import NodeType
+from app.schemas.requests import ChatMessage
 
 
 class MockProvider(LLMProvider):
@@ -94,3 +100,87 @@ async def test_generate_raises_on_provider_error():
 
     with pytest.raises(WorkflowGenerationError, match="LLM call failed"):
         await generate_workflow("test", FailingProvider())
+
+
+# ── _parse_workflow_from_raw ─────────────────────────────────────────
+
+def test_parse_workflow_from_raw_valid():
+    raw = _valid_raw()
+    wf = _parse_workflow_from_raw(raw, {"input": "test"})
+    assert wf is not None
+    assert wf.metadata.get("sample_input") == {"input": "test"}
+
+
+def test_parse_workflow_from_raw_returns_none_for_invalid():
+    # Missing required nodes → validation fails → returns None
+    raw = _valid_raw()
+    raw["nodes"] = []  # no START/END → invalid
+    raw["edges"] = []
+    result = _parse_workflow_from_raw(raw, None)
+    assert result is None
+
+
+# ── chat_workflow_service ────────────────────────────────────────────
+
+class ChatMockProvider(LLMProvider):
+    def __init__(self, response: dict):
+        self._response = response
+
+    async def generate_workflow(self, description: str) -> dict:  # required by ABC
+        return {}
+
+    async def chat_workflow(self, messages: list, current_workflow) -> dict:
+        return dict(self._response)
+
+
+@pytest.mark.asyncio
+async def test_chat_service_returns_gathering_status():
+    provider = ChatMockProvider({"status": "gathering", "reply": "Tell me more about the workflow."})
+    msgs = [ChatMessage(role="user", content="I want a support bot")]
+    result = await chat_workflow_service(msgs, None, provider)
+    assert result.status == "gathering"
+    assert "Tell me more" in result.reply
+    assert result.workflow is None
+
+
+@pytest.mark.asyncio
+async def test_chat_service_returns_ready_with_valid_workflow():
+    provider = ChatMockProvider({
+        "status": "ready",
+        "reply": "Here is your workflow.",
+        "workflow": _valid_raw(),
+        "sample_input": {"message": "hello"},
+    })
+    msgs = [ChatMessage(role="user", content="Support workflow")]
+    result = await chat_workflow_service(msgs, None, provider)
+    assert result.status == "ready"
+    assert result.workflow is not None
+    assert result.workflow.name == "Test Workflow"
+
+
+@pytest.mark.asyncio
+async def test_chat_service_falls_back_to_gathering_on_invalid_workflow():
+    provider = ChatMockProvider({
+        "status": "ready",
+        "reply": "Here you go.",
+        "workflow": {"nodes": [], "edges": []},  # fails validation
+    })
+    msgs = [ChatMessage(role="user", content="Support workflow")]
+    result = await chat_workflow_service(msgs, None, provider)
+    assert result.status == "gathering"
+    assert result.workflow is None
+    assert "snag" in result.reply
+
+
+@pytest.mark.asyncio
+async def test_chat_service_raises_on_provider_error():
+    class FailingChatProvider(LLMProvider):
+        async def generate_workflow(self, description: str) -> dict:
+            return {}
+
+        async def chat_workflow(self, messages: list, current_workflow) -> dict:
+            raise RuntimeError("LLM unavailable")
+
+    msgs = [ChatMessage(role="user", content="test")]
+    with pytest.raises(WorkflowGenerationError, match="LLM call failed"):
+        await chat_workflow_service(msgs, None, FailingChatProvider())
