@@ -205,7 +205,9 @@ export default function RequestAccessPage() {
 
           {/* Cloudflare Turnstile — only rendered when VITE_TURNSTILE_SITE_KEY is set */}
           {TURNSTILE_SITE_KEY && (
-            <div ref={turnstileRef} style={turnstileToken ? { display: 'none' } : undefined} />
+            <div className="turnstile-corner" style={turnstileToken ? { display: 'none' } : undefined}>
+              <div ref={turnstileRef} />
+            </div>
           )}
 
           {error && <p className="auth-error">{error}</p>}
