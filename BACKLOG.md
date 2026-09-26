@@ -436,36 +436,31 @@ Skipped for MVP2.5 — Supabase requires custom SMTP to be configured before ema
 
 ---
 
-### Task 35 — Supabase Auth Rate Limits `[ ]`
+### Task 35 — Supabase Auth Rate Limits `[-]`
 
-Tighten Supabase's built-in rate limits for auth endpoints. Login and forgot-password bypass the FastAPI backend entirely (direct Supabase JS client calls), so slowapi does not protect them — Supabase's own limits are the only server-side enforcement.
-
-**Where to update:** Supabase Dashboard → Project → Authentication → Rate Limits
-
-**Recommended settings:**
-
-| Endpoint | Default | Recommended |
-|---|---|---|
-| Sign-in attempts | high | 10 / hour per IP |
-| Password reset emails | high | 3 / hour per IP |
-| OTP / magic link emails | high | 5 / hour per IP |
-| Signups | high | 5 / hour per IP |
-
-**Why:** Without tightening these, an attacker can hammer the login endpoint or flood a target's inbox with reset emails. The Supabase defaults are intentionally permissive; tightening is a one-click dashboard change per limit.
-
-**Note:** These are Supabase-side controls only — no code changes required.
+Skipped for MVP2.5 — requires custom SMTP or a Supabase plan upgrade to configure. See Future Enhancements below for recommended settings.
 
 
 ---
 
 ## Future Enhancements — Polish & Operations
 
-### Custom SMTP + Branded Email Templates
+### Custom SMTP + Branded Email Templates + Auth Rate Limits
 
-Supabase requires custom SMTP before email templates can be customised. Once set up:
+Both require custom SMTP or a Supabase plan upgrade. Once unblocked:
 
-- Configure SMTP in Supabase Dashboard → Project Settings → Auth → SMTP Settings
-- Apply the 5 branded templates saved in `docs/email-templates.md` (reset password, magic link, confirm signup, change email, invite user)
+**Email templates** — configure SMTP in Supabase Dashboard → Project Settings → Auth → SMTP Settings, then apply the 5 branded templates saved in `docs/email-templates.md` (reset password, magic link, confirm signup, change email, invite user).
+
+**Auth rate limits** — Supabase Dashboard → Authentication → Rate Limits. Recommended settings:
+
+| Endpoint | Recommended |
+|---|---|
+| Sign-in attempts | 10 / hour per IP |
+| Password reset emails | 3 / hour per IP |
+| OTP / magic link emails | 5 / hour per IP |
+| Signups | 5 / hour per IP |
+
+Without these, an attacker can hammer the login endpoint or flood a user's inbox with reset emails — Turnstile only protects the frontend form, not direct Supabase API calls.
 
 ---
 
