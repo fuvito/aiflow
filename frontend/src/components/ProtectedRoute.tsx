@@ -22,7 +22,16 @@ export function ProtectedRoute({ children, requireAdmin = false }: Props) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Authenticated but backend rejected the profile fetch — show the exact reason.
+  // Session exists but profile fetch is still in-flight (e.g. right after login).
+  if (!profile && !profileError) {
+    return (
+      <div className="auth-loading">
+        <div className="auth-loading-spinner" />
+      </div>
+    );
+  }
+
+  // Session exists but backend rejected or failed the profile fetch.
   if (!profile) {
     return (
       <div className="auth-page">

@@ -69,14 +69,15 @@ describe('ProtectedRoute', () => {
     expect(screen.getByText('Access pending approval.')).toBeInTheDocument();
   });
 
-  it('shows fallback message when profileError is null', () => {
+  it('shows spinner while profile is still fetching (session set, no profile yet)', () => {
     renderRoute({
       loading: false,
       session: { access_token: 'tok' },
       profile: null,
       profileError: null,
     });
-    expect(screen.getByText(/unable to load your profile/i)).toBeInTheDocument();
+    expect(document.querySelector('.auth-loading')).toBeInTheDocument();
+    expect(screen.queryByText('Protected content')).not.toBeInTheDocument();
   });
 
   it('calls window.location.reload when Retry is clicked', () => {
